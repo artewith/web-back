@@ -1,0 +1,8 @@
+# essential
+.env
+/node_modules
+# non-essential
+blahblah.md
+*.sql
+puttingData.js
+tags
