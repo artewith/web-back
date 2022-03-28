@@ -7,8 +7,7 @@ import cors from "cors";
 import passport from "passport";
 import dotenv from "dotenv";
 
-import db from "./db";
-import routes from "./routes";
+import pool from "./db";
 
 dotenv.config();
 
