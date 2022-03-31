@@ -5,6 +5,7 @@ import morgan from "morgan";
 import helmet from "helmet";
 import cors from "cors";
 import passport from "passport";
+import compression from "compression";
 import dotenv from "dotenv";
 
 import pool from "./db";
@@ -19,6 +20,7 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(compression());
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
