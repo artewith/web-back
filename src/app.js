@@ -9,6 +9,8 @@ import compression from "compression";
 import dotenv from "dotenv";
 
 import pool from "./db";
+import routes from "./routes";
+import filterRouter from "./routers/filters";
 
 dotenv.config();
 
@@ -35,5 +37,8 @@ app.use(
     }),
   })
 );
+
+// routers
+app.use(routes.FILTERS, filterRouter);
 
 export default app;
