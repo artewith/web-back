@@ -11,6 +11,7 @@ import dotenv from "dotenv";
 import pool from "./db";
 import routes from "./routes";
 import filterRouter from "./routers/filters";
+import authRouter from "./routers/auth";
 
 dotenv.config();
 
@@ -37,8 +38,40 @@ app.use(
     }),
   })
 );
+app.use(passport.initialize());
+app.use(passport.authenticate("session"));
+app.use(passport.session());
+
+// passport middleware
+passport.serializeUser((user, cb) => {
+  process.nextTick(() => {
+    return cb(null, user);
+  });
+});
+passport.deserializeUser((userSession, cb) => {
+  process.nextTick(async () => {
+    const connection = await pool.getConnection(async (conn) => conn);
+    try {
+      const [result] = await connection.query(
+        "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
+        [userSession.id, "kakao"]
+      );
+      if (result[0]) {
+        return cb(null, userSession);
+      } else {
+        throw Error("NO_USER");
+      }
+    } catch (error) {
+      console.log(error.message);
+      return cb(null, false);
+    } finally {
+      connection.release();
+    }
+  });
+});
 
 // routers
 app.use(routes.FILTERS, filterRouter);
+app.use(routes.AUTH, authRouter);
 
 export default app;
