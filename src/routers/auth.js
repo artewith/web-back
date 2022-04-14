@@ -16,6 +16,7 @@ dotenv.config();
 const router = express.Router();
 
 passport.use(
+  "kakao",
   new KakaoStrategy(
     {
       clientID: process.env.KAKAO_KEY,

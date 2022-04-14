@@ -54,12 +54,12 @@ passport.deserializeUser((userSession, cb) => {
     try {
       const [result] = await connection.query(
         "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
-        [userSession.id, "kakao"]
+        [userSession.id, userSession.provider]
       );
       if (result[0]) {
         return cb(null, userSession);
       } else {
-        throw Error("NO_USER");
+        throw Error("NO_SUCH_USER");
       }
     } catch (error) {
       console.log(error.message);
