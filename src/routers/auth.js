@@ -28,22 +28,29 @@ passport.use(
         id: profile.id,
       };
       const connection = await pool.getConnection(async (conn) => conn);
+
       try {
         const [result] = await connection.query(
           "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
-          [profile.id, "kakao"]
+          [profile.id, profile.provider]
         );
         if (result.length) {
           done(null, { ...newSession, isSuperUser: result[0].is_superuser });
         } else {
           await connection.query(
-            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url) VALUES (?,?,?,?,?);",
+            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url, gender, age_range) VALUES (?,?,?,?,?,?,?);",
             [
               1,
               profile.id,
               profile.username,
               profile._json.kakao_account.email,
               profile._json.properties.profile_image,
+              profile._json.kakao_account.gender === "male"
+                ? 1
+                : profile._json.kakao_account.gender === "female"
+                ? 2
+                : profile._json.kakao_account.gender === undefined && null,
+              profile._json.kakao_account.age_range,
             ]
           );
         }
