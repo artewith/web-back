@@ -25,7 +25,7 @@ passport.use(
   new KakaoStrategy(
     {
       clientID: process.env.KAKAO_KEY,
-      callbackURL: "/auth/kakao/callback",
+      callbackURL: routes.AUTH + routes.KAKAO_CALLBACK,
     },
     async (accessToken, refreshToken, profile, done) => {
       const newSession = {
