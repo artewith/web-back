@@ -4,6 +4,9 @@ const routes = {
   LOGOUT: "/logout",
   KAKAO: "/kakao",
   KAKAO_CALLBACK: "/kakao/callback",
+  NAVER: "/naver",
+  NAVER_CALLBACK: "/naver/callback",
+  NAVER_FAIL: "/naver/fail",
 };
 
 export default routes;

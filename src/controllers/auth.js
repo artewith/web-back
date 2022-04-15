@@ -7,4 +7,8 @@ const kakaoCallbackController = (req, res) => {
   res.status(200).end();
 };
 
-export { logoutController, kakaoCallbackController };
+const naverCallbackController = (req, res) => {
+  res.status(200).end();
+};
+
+export { logoutController, kakaoCallbackController, naverCallbackController };
