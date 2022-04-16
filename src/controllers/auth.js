@@ -11,4 +11,13 @@ const naverCallbackController = (req, res) => {
   res.status(200).end();
 };
 
-export { logoutController, kakaoCallbackController, naverCallbackController };
+const googleCallbackController = (req, res) => {
+  res.status(200).end();
+};
+
+export {
+  logoutController,
+  kakaoCallbackController,
+  naverCallbackController,
+  googleCallbackController,
+};
