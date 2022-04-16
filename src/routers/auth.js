@@ -2,6 +2,7 @@ import express from "express";
 import passport from "passport";
 import { Strategy as KakaoStrategy } from "passport-kakao";
 import { Strategy as NaverStrategy } from "passport-naver-v2";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import dotenv from "dotenv";
 
 import routes from "../routes";
@@ -14,6 +15,7 @@ import {
   logoutController,
   kakaoCallbackController,
   naverCallbackController,
+  googleCallbackController,
 } from "../controllers/auth";
 
 dotenv.config();
@@ -123,6 +125,50 @@ passport.use(
   )
 );
 
+passport.use(
+  "google",
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_KEY,
+      clientSecret: process.env.GOOGLE_SECRET,
+      callbackURL: routes.AUTH + routes.GOOGLE_CALLBACK,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      const newSession = {
+        provider: profile.provider,
+        id: profile.id,
+      };
+      const connection = await pool.getConnection(async (conn) => conn);
+
+      try {
+        const [result] = await connection.query(
+          "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
+          [profile.id, profile.provider]
+        );
+        if (result.length) {
+          done(null, { ...newSession, isSuperUser: result[0].is_superuser });
+        } else {
+          await connection.query(
+            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url) VALUES (?,?,?,?,?);",
+            [
+              3,
+              profile.id,
+              profile.displayName,
+              profile._json.email,
+              profile._json.picture,
+            ]
+          );
+        }
+        return done(null, newSession);
+      } catch (error) {
+        return done(error);
+      } finally {
+        connection.release();
+      }
+    }
+  )
+);
+
 router.get(routes.LOGOUT, checkIsAuthenticated, logoutController);
 
 router.get(
@@ -154,6 +200,18 @@ router.get(
     failureRedirect: routes.AUTH + routes.NAVER_FAIL,
   }),
   naverCallbackController
+);
+
+router.get(
+  routes.GOOGLE,
+  checkIsNotAuthenticated,
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.get(
+  routes.GOOGLE_CALLBACK,
+  passport.authenticate("google"),
+  googleCallbackController
 );
 
 export default router;

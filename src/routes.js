@@ -7,6 +7,8 @@ const routes = {
   NAVER: "/naver",
   NAVER_CALLBACK: "/naver/callback",
   NAVER_FAIL: "/naver/fail",
+  GOOGLE: "/google",
+  GOOGLE_CALLBACK: "/google/callback",
 };
 
 export default routes;
