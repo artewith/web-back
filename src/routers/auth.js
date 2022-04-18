@@ -30,19 +30,20 @@ passport.use(
       callbackURL: routes.AUTH + routes.KAKAO_CALLBACK,
     },
     async (accessToken, refreshToken, profile, done) => {
-      const newSession = {
-        provider: profile.provider,
-        id: profile.id,
-      };
       const connection = await pool.getConnection(async (conn) => conn);
 
       try {
-        const [result] = await connection.query(
+        const [[userRecord]] = await connection.query(
           "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
           [profile.id, profile.provider]
         );
-        if (result.length) {
-          done(null, { ...newSession, isSuperUser: result[0].is_superuser });
+        if (userRecord) {
+          done(null, {
+            provider: profile.provider,
+            id: profile.id,
+            recordId: userRecord.id,
+            isSuperUser: userRecord.is_superuser,
+          });
         } else {
           await connection.query(
             "INSERT INTO users (sns_api_id, sns_id, name, email, image_url, gender, age_range) VALUES (?,?,?,?,?,?,?);",
@@ -61,9 +62,15 @@ passport.use(
             ]
           );
         }
-        return done(null, newSession);
+        const [[{ lastInsertId }]] = await connection.query(
+          "SELECT LAST_INSERT_ID() AS lastInsertId;"
+        );
+        return done(null, {
+          provider: profile.provider,
+          id: profile.id,
+          recordId: lastInsertId,
+        });
       } catch (error) {
-        console.log(error);
         return done(error);
       } finally {
         connection.release();
@@ -83,19 +90,20 @@ passport.use(
       if (profile.email === undefined || profile.name === undefined) {
         return done(null, false);
       }
-      const newSession = {
-        provider: profile.provider,
-        id: profile.id,
-      };
       const connection = await pool.getConnection(async (conn) => conn);
 
       try {
-        const [result] = await connection.query(
+        const [[userRecord]] = await connection.query(
           "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
           [profile.id, profile.provider]
         );
-        if (result.length) {
-          done(null, { ...newSession, isSuperUser: result[0].is_superuser });
+        if (userRecord) {
+          done(null, {
+            provider: profile.provider,
+            id: profile.id,
+            recordId: userRecord.id,
+            isSuperUser: userRecord.is_superuser,
+          });
         } else {
           await connection.query(
             "INSERT INTO users (sns_api_id, sns_id, name, email, image_url, gender, age_range, phone_number) VALUES (?,?,?,?,?,?,?,?);",
@@ -115,7 +123,14 @@ passport.use(
             ]
           );
         }
-        return done(null, newSession);
+        const [[{ lastInsertId }]] = await connection.query(
+          "SELECT LAST_INSERT_ID() AS lastInsertId;"
+        );
+        return done(null, {
+          provider: profile.provider,
+          id: profile.id,
+          recordId: lastInsertId,
+        });
       } catch (error) {
         return done(error);
       } finally {
@@ -134,19 +149,20 @@ passport.use(
       callbackURL: routes.AUTH + routes.GOOGLE_CALLBACK,
     },
     async (accessToken, refreshToken, profile, done) => {
-      const newSession = {
-        provider: profile.provider,
-        id: profile.id,
-      };
       const connection = await pool.getConnection(async (conn) => conn);
 
       try {
-        const [result] = await connection.query(
+        const [[userRecord]] = await connection.query(
           "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
           [profile.id, profile.provider]
         );
-        if (result.length) {
-          done(null, { ...newSession, isSuperUser: result[0].is_superuser });
+        if (userRecord) {
+          done(null, {
+            provider: profile.provider,
+            id: profile.id,
+            recordId: userRecord.id,
+            isSuperUser: userRecord.is_superuser,
+          });
         } else {
           await connection.query(
             "INSERT INTO users (sns_api_id, sns_id, name, email, image_url) VALUES (?,?,?,?,?);",
@@ -159,7 +175,14 @@ passport.use(
             ]
           );
         }
-        return done(null, newSession);
+        const [[{ lastInsertId }]] = await connection.query(
+          "SELECT LAST_INSERT_ID() AS lastInsertId;"
+        );
+        return done(null, {
+          provider: profile.provider,
+          id: profile.id,
+          recordId: lastInsertId,
+        });
       } catch (error) {
         return done(error);
       } finally {

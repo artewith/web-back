@@ -48,22 +48,21 @@ passport.serializeUser((user, cb) => {
     return cb(null, user);
   });
 });
-passport.deserializeUser((userSession, cb) => {
+passport.deserializeUser((user, cb) => {
   process.nextTick(async () => {
     const connection = await pool.getConnection(async (conn) => conn);
     try {
-      const [result] = await connection.query(
+      const [[userRecord]] = await connection.query(
         "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
-        [userSession.id, userSession.provider]
+        [user.id, user.provider]
       );
-      if (result[0]) {
-        return cb(null, userSession);
+      if (userRecord) {
+        return cb(null, user);
       } else {
         throw Error("NO_SUCH_USER");
       }
     } catch (error) {
-      console.log(error.message);
-      return cb(null, false);
+      return cb(error);
     } finally {
       connection.release();
     }
