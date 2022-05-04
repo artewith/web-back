@@ -12,6 +12,7 @@ import pool from "./db";
 import routes from "./routes";
 import filterRouter from "./routers/filters";
 import authRouter from "./routers/auth";
+import offerRouter from "./routers/offers";
 
 dotenv.config();
 
@@ -72,5 +73,6 @@ passport.deserializeUser((user, cb) => {
 // routers
 app.use(routes.FILTERS, filterRouter);
 app.use(routes.AUTH, authRouter);
+app.use(routes.OFFERS, offerRouter);
 
 export default app;

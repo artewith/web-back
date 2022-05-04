@@ -1,4 +1,5 @@
 const routes = {
+  ROOT: "/",
   FILTERS: "/filters",
   AUTH: "/auth",
   LOGOUT: "/logout",
@@ -9,6 +10,9 @@ const routes = {
   NAVER_FAIL: "/naver/fail",
   GOOGLE: "/google",
   GOOGLE_CALLBACK: "/google/callback",
+  OFFERS: "/offers",
+  OFFER_ID: "/:offerId",
+  OFFER_RECOMMEND: "/:offerId/recommend",
 };
 
 export default routes;
