@@ -2,6 +2,7 @@ import mysql from "mysql2/promise";
 
 import pool from "../db";
 import myRaw from "../utils/myRaw";
+import { constants } from "../utils/offers";
 
 const detailOffer = async (req, res) => {
   const { offerId } = req.params;
@@ -32,18 +33,18 @@ const detailOffer = async (req, res) => {
   try {
     const [[exOffer]] = await connection.query(offerSql);
     if (!exOffer) {
-      res.status(403).json({ message: "RECORD NOT EXISTS" });
+      return res.status(403).json({ message: "RECORD NOT EXISTS" });
     }
     const [educations] = await connection.query(educationsSql);
     const [lectures] = await connection.query(lecturesSql);
     await connection.query(updateViewCountSql);
 
-    res.status(200).json({ exOffer, educations, lectures });
+    return res.status(200).json({ exOffer, educations, lectures });
   } catch (error) {
     console.log(error);
-    res.status(403).json({ message: error.message });
+    return res.status(403).json({ message: error.message });
   } finally {
-    return connection.release();
+    connection.release();
   }
 };
 
@@ -52,12 +53,16 @@ const listOffers = async (req, res) => {
     return res.status(403).json({ message: "CATEGORY_ID_REQUIRED" });
   }
 
-  const LIMIT = req.query.limit ? req.query.limit : 20;
-  const OFFSET = req.query.page ? LIMIT * (req.query.page - 1) : 0;
-  const SELECTED_LIMIT = req.query.selectedLimit ? req.query.selectedLimit : 6;
+  const LIMIT = req.query.limit ? req.query.limit : constants.DEFAULT_LIMIT;
+  const OFFSET = req.query.page
+    ? LIMIT * (req.query.page - 1)
+    : constants.DEFAULT_OFFSET;
+  const SELECTED_LIMIT = req.query.selectedLimit
+    ? req.query.selectedLimit
+    : constants.DEFAULT_SELECTED_LIMIT;
   const SELECTED_OFFSET = req.query.selectedPage
     ? SELECTED_LIMIT * (req.query.selectedPage - 1)
-    : 0;
+    : constants.DEFAULT_OFFSET;
   const districtIds =
     req.query.districtIds && !Array.isArray(req.query.districtIds)
       ? [req.query.districtIds]
@@ -123,18 +128,22 @@ const listOffers = async (req, res) => {
     const [common] = await connection.query(commonOfferSql);
     const [selected] = await connection.query(selectedOfferSql);
 
-    res.status(200).json({ common, selected });
+    return res.status(200).json({ common, selected });
   } catch (error) {
-    res.status(403).json({ message: error.message });
+    return res.status(403).json({ message: error.message });
   } finally {
-    return connection.release();
+    connection.release();
   }
 };
 
 const recommendOffers = async (req, res) => {
   const { offerId } = req.params;
-  const LIMIT = req.query.limit ? req.query.limit : 6;
-  const OFFSET = req.query.page ? LIMIT * (req.query.page - 1) : 0;
+  const LIMIT = req.query.limit
+    ? req.query.limit
+    : constants.DEFAULT_RECOMMEND_LIMIT;
+  const OFFSET = req.query.page
+    ? LIMIT * (req.query.page - 1)
+    : constants.DEFAULT_OFFSET;
   const sql = mysql.format(
     `SELECT  O.*, U.name, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM offers AS O 
@@ -158,11 +167,11 @@ const recommendOffers = async (req, res) => {
   const connection = await pool.getConnection(async (conn) => conn);
   try {
     const [result] = await connection.query(sql);
-    res.status(200).json(result);
+    return res.status(200).json(result);
   } catch (error) {
-    res.status(403).json({ message: error.message });
+    return res.status(403).json({ message: error.message });
   } finally {
-    return connection.release();
+    connection.release();
   }
 };
 
@@ -196,20 +205,19 @@ const createOffer = async (req, res) => {
   ) {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
   }
-  // !: categoryId number -> name constant
   switch (categoryId) {
-    case 1:
-    case 4:
+    case constants.ENTRANCE_RESUME_ID:
+    case constants.ACCOMPANY_RESUME_ID:
       if (!workExperience || !educations?.length) {
         return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
       }
       break;
-    case 2:
+    case constants.ACADEMY_RECRUIT_ID:
       if (!institution || !monthlyWage || !workForm || !direction) {
         return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
       }
       break;
-    case 3:
+    case constants.ACCOMPANY_RECRUIT_ID:
       if (!performerField) {
         return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
       }
@@ -244,14 +252,14 @@ const createOffer = async (req, res) => {
       lectures?.length > 0 ? true : false,
     ]
   );
-  const exOfferSql = mysql.format("SELECT * FROM offers  ? ?", [
+  const checkExSql = mysql.format("SELECT * FROM offers  ? ?", [
     myRaw.where.userId(req.user.recordId, true),
     myRaw.where.offerCategoryId(categoryId),
   ]);
 
   const connection = await pool.getConnection(async (conn) => conn);
   try {
-    const [[exOffer]] = await connection.query(exOfferSql);
+    const [[exOffer]] = await connection.query(checkExSql);
     if (exOffer) {
       return res
         .status(403)
@@ -264,7 +272,10 @@ const createOffer = async (req, res) => {
       "SELECT LAST_INSERT_ID() AS lastInsertId"
     );
 
-    if (categoryId in [1, 4]) {
+    if (
+      categoryId in
+      [constants.ENTRANCE_RESUME_ID, constants.ACCOMPANY_RESUME_ID]
+    ) {
       for (let i = 0; i < lectures.length; i++) {
         const { institution, isRepresentative } = lectures[i];
         const sql = mysql.format(
@@ -283,12 +294,12 @@ const createOffer = async (req, res) => {
       }
     }
 
-    res.status(200).json({ message: "insert success.", lastInsertId });
+    return res.status(200).json({ message: "insert success.", lastInsertId });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   } finally {
-    return connection.release();
+    connection.release();
   }
 };
 
@@ -322,7 +333,7 @@ const updateOffer = async (req, res) => {
   ) {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
   }
-  const selectOfferSql = mysql.format("SELECT * FROM offers  ?", [
+  const checkExSql = mysql.format("SELECT * FROM offers  ?", [
     myRaw.where.id(offerId, true),
   ]);
   const updateSql = mysql.format(
@@ -352,16 +363,16 @@ const updateOffer = async (req, res) => {
 
   const connection = await pool.getConnection(async (conn) => conn);
   try {
-    const [[exOffer]] = await connection.query(selectOfferSql);
+    const [[exOffer]] = await connection.query(checkExSql);
     if (!exOffer) {
-      res.status(403).json({ message: "RECORD NOT EXISTS" });
+      return res.status(403).json({ message: "RECORD NOT EXISTS" });
     } else if (exOffer.user_id !== req.user.recordId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
     switch (exOffer.offer_category_id) {
-      case 1:
-      case 4:
+      case constants.ENTRANCE_RESUME_ID:
+      case constants.ACCOMPANY_RESUME_ID:
         if (!workExperience || !educations?.length) {
           return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
         }
@@ -429,12 +440,12 @@ const updateOffer = async (req, res) => {
           }
         }
         break;
-      case 2:
+      case constants.ACADEMY_RECRUIT_ID:
         if (!institution || !monthlyWage || !workForm || !direction) {
           return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
         }
         break;
-      case 3:
+      case constants.ACCOMPANY_RECRUIT_ID:
         if (!performerField) {
           return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
         }
@@ -442,17 +453,17 @@ const updateOffer = async (req, res) => {
     }
 
     await connection.query(updateSql);
-    res.status(204).end();
+    return res.status(204).end();
   } catch (error) {
-    res.status(403).json({ message: error.message });
+    return res.status(403).json({ message: error.message });
   } finally {
-    return connection.release();
+    connection.release();
   }
 };
 
 const deleteOffer = async (req, res) => {
   const { offerId } = req.params;
-  const selectOfferSql = mysql.format("SELECT * FROM offers  ?", [
+  const checkExSql = mysql.format("SELECT * FROM offers  ?", [
     myRaw.where.id(offerId, true),
   ]);
   const deleteEducationSql = mysql.format("DELETE FROM educations  ?", [
@@ -467,9 +478,9 @@ const deleteOffer = async (req, res) => {
 
   const connection = await pool.getConnection(async (conn) => conn);
   try {
-    const [[exOffer]] = await connection.query(selectOfferSql);
+    const [[exOffer]] = await connection.query(checkExSql);
     if (!exOffer) {
-      res.status(403).json({ message: "RECORD NOT EXISTS" });
+      return res.status(403).json({ message: "RECORD NOT EXISTS" });
     } else if (exOffer.user_id !== req.user.recordId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
@@ -477,11 +488,11 @@ const deleteOffer = async (req, res) => {
     await connection.query(deleteEducationSql);
     await connection.query(deleteLectureSql);
     await connection.query(deleteOfferSql);
-    res.status(204).end();
+    return res.status(204).end();
   } catch (error) {
-    res.status(403).json({ message: error.message });
+    return res.status(403).json({ message: error.message });
   } finally {
-    return connection.release();
+    connection.release();
   }
 };
 
