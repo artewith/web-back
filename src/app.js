@@ -60,10 +60,10 @@ passport.deserializeUser((user, cb) => {
       if (userRecord) {
         return cb(null, user);
       } else {
-        throw Error("NO_SUCH_USER");
+        return cb(null, null);
       }
     } catch (error) {
-      return cb(error);
+      return cb(error, null);
     } finally {
       connection.release();
     }
