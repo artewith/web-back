@@ -15,18 +15,24 @@ const detailOffer = async (req, res) => {
         JOIN district AS D ON O.district_id=D.id
         LEFT JOIN region AS R ON D.region_id=R.id
         LEFT JOIN educations AS E ON E.offer_id=O.id AND E.is_representative=true
-        ?`,
-    [myRaw.where.offerId(offerId, true)]
+        WHERE 1=1 ?`,
+    [myRaw.where.offerId(offerId)]
   );
-  const educationsSql = mysql.format("SELECT * FROM educations  ?", [
-    myRaw.where.offerIdRefer(offerId, true),
-  ]);
-  const lecturesSql = mysql.format("SELECT * FROM lectures  ?", [
-    myRaw.where.offerIdRefer(offerId, true),
-  ]);
+  const educationsSql = mysql.format(
+    `SELECT * FROM educations 
+      WHERE 1=1 ?`,
+    [myRaw.where.offerIdRefer(offerId)]
+  );
+  const lecturesSql = mysql.format(
+    `SELECT * FROM lectures 
+      WHERE 1=1 ?`,
+    [myRaw.where.offerIdRefer(offerId)]
+  );
   const updateViewCountSql = mysql.format(
-    "UPDATE offers AS O SET view_count=view_count+1  ?",
-    [myRaw.where.id(offerId, true)]
+    `UPDATE offers AS O 
+      SET view_count=view_count+1 
+      WHERE 1=1 ?`,
+    [myRaw.where.id(offerId)]
   );
 
   const connection = await pool.getConnection(async (conn) => conn);
@@ -87,11 +93,11 @@ const listOffers = async (req, res) => {
         JOIN region AS R ON D.region_id=R.id
         LEFT JOIN lectures AS L ON L.offer_id=O.id AND L.is_representative=true 
         LEFT JOIN educations AS E ON E.offer_id=O.id AND E.is_representative=true 
-        ? ? ? ? ? ? ? ? ? ? 
+        WHERE 1=1 ? ? ? ? ? ? ? ? ? ? 
         ORDER BY selected_until DESC, updated_at DESC 
         ?`,
     [
-      myRaw.where.offerCategoryId(req.query.categoryId, true),
+      myRaw.where.offerCategoryId(req.query.categoryId),
       myRaw.where.districtIds(districtIds, regionIds),
       myRaw.where.workExperiences(req.query.workExperience),
       myRaw.where.majorIds(majorIds),
@@ -104,6 +110,7 @@ const listOffers = async (req, res) => {
       myRaw.base.limitOffset(LIMIT, OFFSET),
     ]
   );
+  console.log(commonOfferSql);
   const selectedOfferSql = mysql.format(
     `SELECT O.*, U.name, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM offers AS O 
@@ -113,11 +120,11 @@ const listOffers = async (req, res) => {
         JOIN region AS R ON D.region_id=R.id
         LEFT JOIN lectures AS L ON L.offer_id=O.id AND L.is_representative=true 
         LEFT JOIN educations AS E ON E.offer_id=O.id AND E.is_representative=true
-        ? ? 
+        WHERE 1=1 ? ? 
         ORDER BY updated_at DESC 
         ?`,
     [
-      myRaw.where.offerCategoryId(req.query.categoryId, true),
+      myRaw.where.offerCategoryId(req.query.categoryId),
       myRaw.where.selectedUntil(currentDate),
       myRaw.base.limitOffset(SELECTED_LIMIT, SELECTED_OFFSET),
     ]
@@ -153,11 +160,11 @@ const recommendOffers = async (req, res) => {
         JOIN region AS R ON D.region_id=R.id
         LEFT JOIN lectures AS L ON L.offer_id=O.id AND L.is_representative=true 
         LEFT JOIN educations AS E ON E.offer_id=O.id AND E.is_representative=true 
-        ? ? ? 
+        WHERE 1=1 ? ? ? 
         ORDER BY selected_until DESC, updated_at DESC 
         ?`,
     [
-      myRaw.where.offerCategoryIdByOfferId(offerId, true),
+      myRaw.where.offerCategoryIdByOfferId(offerId),
       myRaw.where.districtIdsByOfferId(offerId),
       myRaw.where.offerIdNot(offerId),
       myRaw.base.limitOffset(LIMIT, OFFSET),
@@ -252,10 +259,14 @@ const createOffer = async (req, res) => {
       lectures?.length > 0 ? true : false,
     ]
   );
-  const checkExSql = mysql.format("SELECT * FROM offers  ? ?", [
-    myRaw.where.userId(req.user.recordId, true),
-    myRaw.where.offerCategoryId(categoryId),
-  ]);
+  const checkExSql = mysql.format(
+    `SELECT id FROM offers 
+      WHERE 1=1 ? ?`,
+    [
+      myRaw.where.userId(req.user.recordId),
+      myRaw.where.offerCategoryId(categoryId),
+    ]
+  );
 
   const connection = await pool.getConnection(async (conn) => conn);
   try {
@@ -269,7 +280,7 @@ const createOffer = async (req, res) => {
     await connection.query(insertSql);
 
     const [[{ lastInsertId }]] = await connection.query(
-      "SELECT LAST_INSERT_ID() AS lastInsertId"
+      `SELECT LAST_INSERT_ID() AS lastInsertId`
     );
 
     if (
@@ -279,7 +290,8 @@ const createOffer = async (req, res) => {
       for (let i = 0; i < lectures.length; i++) {
         const { institution, isRepresentative } = lectures[i];
         const sql = mysql.format(
-          "INSERT INTO lectures(offer_id, institution, is_representative) VALUES(?,?,?)",
+          `INSERT INTO lectures(offer_id, institution, is_representative) 
+            VALUES(?,?,?)`,
           [lastInsertId, institution, isRepresentative]
         );
         await connection.query(sql);
@@ -287,7 +299,8 @@ const createOffer = async (req, res) => {
       for (let i = 0; i < educations.length; i++) {
         const { institution, major, degree, isRepresentative } = educations[i];
         const sql = mysql.format(
-          "INSERT INTO educations(offer_id, institution, major, degree, is_representative) VALUES(?,?,?,?,?)",
+          `INSERT INTO educations(offer_id, institution, major, degree, is_representative) 
+            VALUES(?,?,?,?,?)`,
           [lastInsertId, institution, major, degree, isRepresentative]
         );
         await connection.query(sql);
@@ -333,13 +346,15 @@ const updateOffer = async (req, res) => {
   ) {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
   }
-  const checkExSql = mysql.format("SELECT * FROM offers  ?", [
-    myRaw.where.id(offerId, true),
-  ]);
+  const checkExSql = mysql.format(
+    `SELECT id, user_id FROM offers 
+      WHERE 1=1 ?`,
+    [myRaw.where.id(offerId)]
+  );
   const updateSql = mysql.format(
     `UPDATE offers 
       SET district_id=?, title=?, image_url=?, description=?, email=?, phone_number=?, hourly_wage=?, is_negotiable=?, major_id=?, work_experience=?, gender=?, direction=?, institution=?, monthly_wage=?, work_form=?, performer_field=? 
-      ?`,
+      WHERE 1=1 ?`,
     [
       districtId,
       title,
@@ -357,7 +372,7 @@ const updateOffer = async (req, res) => {
       monthlyWage,
       workForm,
       performerField,
-      myRaw.where.id(offerId, true),
+      myRaw.where.id(offerId),
     ]
   );
 
@@ -388,19 +403,23 @@ const updateOffer = async (req, res) => {
           } = educations[i];
           if (id) {
             if (isDeleted) {
-              const deleteSql = mysql.format("DELETE FROM educations  ?", [
-                myRaw.where.id(id, true),
-              ]);
+              const deleteSql = mysql.format(
+                `DELETE FROM educations 
+                  WHERE 1=1 ?`,
+                [myRaw.where.id(id)]
+              );
               await connection.query(deleteSql);
             } else {
               const updateSql = mysql.format(
-                "UPDATE educations SET institution=?, major=?, degree=?, is_representative=?  ?",
+                `UPDATE educations 
+                  SET institution=?, major=?, degree=?, is_representative=? 
+                  WHERE 1=1 ?`,
                 [
                   institution,
                   major,
                   degree,
                   isRepresentative,
-                  myRaw.where.id(id, true),
+                  myRaw.where.id(id),
                 ]
               );
               await connection.query(updateSql);
@@ -408,7 +427,7 @@ const updateOffer = async (req, res) => {
           } else if (isNew) {
             const insertSql = mysql.format(
               `INSERT INTO educations(offer_id, institution, major, degree, is_representative) 
-              VALUES(?,?,?,?,?)`,
+                VALUES(?,?,?,?,?)`,
               [offerId, institution, major, degree, isRepresentative]
             );
             await connection.query(insertSql);
@@ -419,21 +438,25 @@ const updateOffer = async (req, res) => {
             lectures[i];
           if (id) {
             if (isDeleted) {
-              const deleteSql = mysql.format("DELETE FROM lectures  ?", [
-                myRaw.where.id(id, true),
-              ]);
+              const deleteSql = mysql.format(
+                `DELETE FROM lectures 
+                  WHERE 1=1 ?`,
+                [myRaw.where.id(id)]
+              );
               await connection.query(deleteSql);
             } else {
               const updateSql = mysql.format(
-                "UPDATE lectures SET institution=?, is_representative=?  ?",
-                [institution, isRepresentative, myRaw.where.id(id, true)]
+                `UPDATE lectures 
+                  SET institution=?, is_representative=? 
+                  WHERE 1=1 ?`,
+                [institution, isRepresentative, myRaw.where.id(id)]
               );
               await connection.query(updateSql);
             }
           } else if (isNew) {
             const insertSql = mysql.format(
               `INSERT INTO lectures(offer_id, institution, is_representative) 
-              VALUES(?,?,?)`,
+                VALUES(?,?,?)`,
               [offerId, institution, isRepresentative]
             );
             await connection.query(insertSql);
@@ -463,18 +486,26 @@ const updateOffer = async (req, res) => {
 
 const deleteOffer = async (req, res) => {
   const { offerId } = req.params;
-  const checkExSql = mysql.format("SELECT * FROM offers  ?", [
-    myRaw.where.id(offerId, true),
-  ]);
-  const deleteEducationSql = mysql.format("DELETE FROM educations  ?", [
-    myRaw.where.offerIdRefer(offerId, true),
-  ]);
-  const deleteLectureSql = mysql.format("DELETE FROM lectures  ?", [
-    myRaw.where.offerIdRefer(offerId, true),
-  ]);
-  const deleteOfferSql = mysql.format("DELETE FROM offers  ?", [
-    myRaw.where.id(offerId, true),
-  ]);
+  const checkExSql = mysql.format(
+    `SELECT id, user_id FROM offers 
+      WHERE 1=1 ?`,
+    [myRaw.where.id(offerId)]
+  );
+  const deleteEducationSql = mysql.format(
+    `DELETE FROM educations 
+      WHERE 1=1 ?`,
+    [myRaw.where.offerIdRefer(offerId)]
+  );
+  const deleteLectureSql = mysql.format(
+    `DELETE FROM lectures 
+      WHERE 1=1 ?`,
+    [myRaw.where.offerIdRefer(offerId)]
+  );
+  const deleteOfferSql = mysql.format(
+    `DELETE FROM offers 
+      WHERE 1=1 ?`,
+    [myRaw.where.id(offerId)]
+  );
 
   const connection = await pool.getConnection(async (conn) => conn);
   try {
