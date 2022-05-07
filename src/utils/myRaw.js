@@ -56,6 +56,7 @@ const myRaw = {
     offerId: (id) => mysql.raw(`AND O.id=${id}`),
     offerIdNot: (id) => mysql.raw(`AND O.id!=${id}`),
     offerIdRefer: (id) => mysql.raw(`AND offer_id=${id}`),
+    houseIdRefer: (id) => mysql.raw(`AND practice_house_id=${id}`),
     offerCategoryIdByOfferId: (id) =>
       mysql.raw(
         `AND O.offer_category_id=(
@@ -73,11 +74,23 @@ const myRaw = {
                     )
                 ))`
       ),
+    facilityIds: (ids) =>
+      mysql.raw(ids ? `AND PF.facility_id IN (${[ids]})` : ""),
+    facilitiesByHouseId: (id) =>
+      mysql.raw(
+        `AND F.id IN (
+          SELECT facility_id FROM practice_houses_facility 
+          WHERE practice_house_id = ${id}
+      )`
+      ),
   },
   base: {
     limitOffset: (limit, offset) =>
       mysql.raw(`LIMIT ${limit} OFFSET ${offset}`),
   },
+  orderBy: {
+    hourlyPrice: (order) =>
+      mysql.raw(order === undefined ? "" : `hourly_price ${order} ,`),
+  },
 };
-
 export default myRaw;
