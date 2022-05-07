@@ -13,6 +13,7 @@ import routes from "./routes";
 import filterRouter from "./routers/filters";
 import authRouter from "./routers/auth";
 import offerRouter from "./routers/offers";
+import practiceHouseRouter from "./routers/practice-houses";
 
 dotenv.config();
 
@@ -74,5 +75,6 @@ passport.deserializeUser((user, cb) => {
 app.use(routes.FILTERS, filterRouter);
 app.use(routes.AUTH, authRouter);
 app.use(routes.OFFERS, offerRouter);
+app.use(routes.PRACTICE_HOUSES, practiceHouseRouter);
 
 export default app;

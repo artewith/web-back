@@ -13,6 +13,9 @@ const routes = {
   OFFERS: "/offers",
   OFFER_ID: "/:offerId",
   OFFER_RECOMMEND: "/:offerId/recommend",
+  PRACTICE_HOUSES: "/practice-houses",
+  HOUSE_ID: "/:houseId",
+  HOUSE_RECOMMEND: "/:houseId/recommend",
 };
 
 export default routes;
