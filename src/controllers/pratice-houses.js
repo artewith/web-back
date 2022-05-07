@@ -159,7 +159,9 @@ const createHouse = async (req, res) => {
     facilityIds,
   } = req.body;
 
-  if ([districtId, title, hourlyPrice].includes(undefined)) {
+  if (
+    [districtId, title, hourlyPrice, rooms, facilityIds].includes(undefined)
+  ) {
     return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
@@ -208,6 +210,7 @@ const createHouse = async (req, res) => {
     const [[{ lastInsertId }]] = await connection.query(
       `SELECT LAST_INSERT_ID() AS lastInsertId`
     );
+
     for (const el of rooms) {
       const sql = mysql.format(
         `INSERT INTO rooms (practice_house_id, name, instrument, hourly_price, image_url ) 
@@ -225,7 +228,7 @@ const createHouse = async (req, res) => {
       await connection.query(sql);
     }
 
-    return res.status(201).end();
+    return res.status(201).json({ lastInsertId });
   } catch (error) {
     return res.status(403).json({ message: error.message });
   } finally {
@@ -248,7 +251,9 @@ const updateHouse = async (req, res) => {
     facilityIds,
   } = req.body;
 
-  if ([districtId, title, hourlyPrice].includes(undefined)) {
+  if (
+    [districtId, title, hourlyPrice, rooms, facilityIds].includes(undefined)
+  ) {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
   }
 
