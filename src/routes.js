@@ -13,9 +13,11 @@ const routes = {
   OFFERS: "/offers",
   OFFER_ID: "/:offerId",
   OFFER_RECOMMEND: "/:offerId/recommend",
+  OFFER_FULFILL: "/:offerId/fulfill",
   PRACTICE_HOUSES: "/practice-houses",
   HOUSE_ID: "/:houseId",
   HOUSE_RECOMMEND: "/:houseId/recommend",
+  HOUSE_FULFILL: "/:houseId/fulfill",
 };
 
 export default routes;
