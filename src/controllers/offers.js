@@ -47,7 +47,6 @@ const detailOffer = async (req, res) => {
 
     return res.status(200).json({ exOffer, educations, lectures });
   } catch (error) {
-    console.log(error);
     return res.status(403).json({ message: error.message });
   } finally {
     connection.release();
@@ -110,7 +109,6 @@ const listOffers = async (req, res) => {
       myRaw.base.limitOffset(LIMIT, OFFSET),
     ]
   );
-  console.log(commonOfferSql);
   const selectedOfferSql = mysql.format(
     `SELECT O.*, U.name, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM offers AS O 
@@ -212,11 +210,32 @@ const createOffer = async (req, res) => {
   ) {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
   }
+
   switch (categoryId) {
     case constants.ENTRANCE_RESUME_ID:
     case constants.ACCOMPANY_RESUME_ID:
-      if (!workExperience || !educations?.length) {
+      if (!workExperience) {
         return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
+      }
+
+      if (educations) {
+        for (const el of educations) {
+          if (
+            !el.institution ||
+            !el.major ||
+            el.isRepresentative === undefined
+          ) {
+            return res.status(403).json({ message: "OMISSION IN educations" });
+          }
+        }
+      }
+
+      if (lectures) {
+        for (const el of lectures) {
+          if (!el.institution || el.isRepresentative === undefined) {
+            return res.status(403).json({ message: "OMISSION IN lectures" });
+          }
+        }
       }
       break;
     case constants.ACADEMY_RECRUIT_ID:
@@ -284,24 +303,29 @@ const createOffer = async (req, res) => {
     );
 
     if (
-      categoryId in
-      [constants.ENTRANCE_RESUME_ID, constants.ACCOMPANY_RESUME_ID]
+      [constants.ENTRANCE_RESUME_ID, constants.ACCOMPANY_RESUME_ID].includes(
+        categoryId
+      )
     ) {
-      for (let i = 0; i < lectures.length; i++) {
-        const { institution, isRepresentative } = lectures[i];
+      for (const el of lectures) {
         const sql = mysql.format(
           `INSERT INTO lectures(offer_id, institution, is_representative) 
             VALUES(?,?,?)`,
-          [lastInsertId, institution, isRepresentative]
+          [lastInsertId, el.institution, el.isRepresentative]
         );
         await connection.query(sql);
       }
-      for (let i = 0; i < educations.length; i++) {
-        const { institution, major, degree, isRepresentative } = educations[i];
+      for (const el of educations) {
         const sql = mysql.format(
           `INSERT INTO educations(offer_id, institution, major, degree, is_representative) 
             VALUES(?,?,?,?,?)`,
-          [lastInsertId, institution, major, degree, isRepresentative]
+          [
+            lastInsertId,
+            el.institution,
+            el.major,
+            el.degree,
+            el.isRepresentative,
+          ]
         );
         await connection.query(sql);
       }
@@ -309,7 +333,6 @@ const createOffer = async (req, res) => {
 
     return res.status(200).json({ message: "insert success.", lastInsertId });
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ message: error.message });
   } finally {
     connection.release();
@@ -346,8 +369,9 @@ const updateOffer = async (req, res) => {
   ) {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
   }
+
   const checkExSql = mysql.format(
-    `SELECT id, user_id FROM offers 
+    `SELECT id, user_id, offer_category_id FROM offers 
       WHERE 1=1 ?`,
     [myRaw.where.id(offerId)]
   );
@@ -388,78 +412,31 @@ const updateOffer = async (req, res) => {
     switch (exOffer.offer_category_id) {
       case constants.ENTRANCE_RESUME_ID:
       case constants.ACCOMPANY_RESUME_ID:
-        if (!workExperience || !educations?.length) {
+        if (!workExperience) {
           return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
         }
-        for (let i = 0; i < educations.length; i++) {
-          const {
-            id,
-            isNew,
-            isDeleted,
-            institution,
-            major,
-            degree,
-            isRepresentative,
-          } = educations[i];
-          if (id) {
-            if (isDeleted) {
-              const deleteSql = mysql.format(
-                `DELETE FROM educations 
-                  WHERE 1=1 ?`,
-                [myRaw.where.id(id)]
-              );
-              await connection.query(deleteSql);
-            } else {
-              const updateSql = mysql.format(
-                `UPDATE educations 
-                  SET institution=?, major=?, degree=?, is_representative=? 
-                  WHERE 1=1 ?`,
-                [
-                  institution,
-                  major,
-                  degree,
-                  isRepresentative,
-                  myRaw.where.id(id),
-                ]
-              );
-              await connection.query(updateSql);
+        if (educations) {
+          for (const el of educations) {
+            if (
+              !el.isDeleted &&
+              (!el.institution ||
+                !el.major ||
+                el.isRepresentative === undefined)
+            ) {
+              return res
+                .status(403)
+                .json({ message: "OMISSION IN educations" });
             }
-          } else if (isNew) {
-            const insertSql = mysql.format(
-              `INSERT INTO educations(offer_id, institution, major, degree, is_representative) 
-                VALUES(?,?,?,?,?)`,
-              [offerId, institution, major, degree, isRepresentative]
-            );
-            await connection.query(insertSql);
           }
         }
-        for (let i = 0; i < lectures.length; i++) {
-          const { id, isNew, isDeleted, institution, isRepresentative } =
-            lectures[i];
-          if (id) {
-            if (isDeleted) {
-              const deleteSql = mysql.format(
-                `DELETE FROM lectures 
-                  WHERE 1=1 ?`,
-                [myRaw.where.id(id)]
-              );
-              await connection.query(deleteSql);
-            } else {
-              const updateSql = mysql.format(
-                `UPDATE lectures 
-                  SET institution=?, is_representative=? 
-                  WHERE 1=1 ?`,
-                [institution, isRepresentative, myRaw.where.id(id)]
-              );
-              await connection.query(updateSql);
+        if (lectures) {
+          for (const el of lectures) {
+            if (
+              !el.isDeleted &&
+              (!el.institution || el.isRepresentative === undefined)
+            ) {
+              return res.status(403).json({ message: "OMISSION IN lectures" });
             }
-          } else if (isNew) {
-            const insertSql = mysql.format(
-              `INSERT INTO lectures(offer_id, institution, is_representative) 
-                VALUES(?,?,?)`,
-              [offerId, institution, isRepresentative]
-            );
-            await connection.query(insertSql);
           }
         }
         break;
@@ -473,6 +450,73 @@ const updateOffer = async (req, res) => {
           return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
         }
         break;
+    }
+
+    if (
+      [constants.ENTRANCE_RESUME_ID, constants.ACCOMPANY_RESUME_ID].includes(
+        exOffer.offer_category_id
+      )
+    ) {
+      for (const el of educations) {
+        if (el.id) {
+          if (el.isDeleted) {
+            const deleteSql = mysql.format(
+              `DELETE FROM educations 
+                  WHERE 1=1 ?`,
+              [myRaw.where.id(el.id)]
+            );
+            await connection.query(deleteSql);
+          } else {
+            const updateSql = mysql.format(
+              `UPDATE educations 
+                  SET institution=?, major=?, degree=?, is_representative=? 
+                  WHERE 1=1 ?`,
+              [
+                el.institution,
+                el.major,
+                el.degree,
+                el.isRepresentative,
+                myRaw.where.id(el.id),
+              ]
+            );
+            await connection.query(updateSql);
+          }
+        } else if (el.isNew) {
+          const insertSql = mysql.format(
+            `INSERT INTO educations(offer_id, institution, major, degree, is_representative) 
+                VALUES(?,?,?,?,?)`,
+            [offerId, el.institution, el.major, el.degree, el.isRepresentative]
+          );
+          await connection.query(insertSql);
+        }
+      }
+      for (const el of lectures) {
+        if (el.id) {
+          if (el.isDeleted) {
+            const deleteSql = mysql.format(
+              `DELETE FROM lectures 
+                  WHERE 1=1 ?`,
+              [myRaw.where.id(el.id)]
+            );
+            await connection.query(deleteSql);
+          } else {
+            const updateSql = mysql.format(
+              `UPDATE lectures 
+                  SET institution=?, is_representative=? 
+                  WHERE 1=1 ?`,
+              [el.institution, el.isRepresentative, myRaw.where.id(el.id)]
+            );
+            await connection.query(updateSql);
+          }
+        } else if (el.isNew) {
+          const insertSql = mysql.format(
+            `INSERT INTO lectures(offer_id, institution, is_representative) 
+                VALUES(?,?,?)`,
+            [offerId, el.institution, el.isRepresentative]
+          );
+          await connection.query(insertSql);
+        }
+      }
     }
 
     await connection.query(updateSql);
