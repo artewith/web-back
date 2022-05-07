@@ -20,18 +20,18 @@ const detailOffer = async (req, res) => {
   );
   const educationsSql = mysql.format(
     `SELECT * FROM educations 
-      WHERE 1=1 ?`,
+        WHERE 1=1 ?`,
     [myRaw.where.offerIdRefer(offerId)]
   );
   const lecturesSql = mysql.format(
     `SELECT * FROM lectures 
-      WHERE 1=1 ?`,
+        WHERE 1=1 ?`,
     [myRaw.where.offerIdRefer(offerId)]
   );
   const updateViewCountSql = mysql.format(
     `UPDATE offers AS O 
-      SET view_count=view_count+1 
-      WHERE 1=1 ?`,
+        SET view_count=view_count+1 
+        WHERE 1=1 ?`,
     [myRaw.where.id(offerId)]
   );
 
@@ -92,7 +92,7 @@ const listOffers = async (req, res) => {
         JOIN region AS R ON D.region_id=R.id
         LEFT JOIN lectures AS L ON L.offer_id=O.id AND L.is_representative=true 
         LEFT JOIN educations AS E ON E.offer_id=O.id AND E.is_representative=true 
-        WHERE 1=1 ? ? ? ? ? ? ? ? ? ? 
+        WHERE is_fulfilled=false ? ? ? ? ? ? ? ? ? ? 
         ORDER BY selected_until DESC, updated_at DESC 
         ?`,
     [
@@ -158,7 +158,7 @@ const recommendOffers = async (req, res) => {
         JOIN region AS R ON D.region_id=R.id
         LEFT JOIN lectures AS L ON L.offer_id=O.id AND L.is_representative=true 
         LEFT JOIN educations AS E ON E.offer_id=O.id AND E.is_representative=true 
-        WHERE 1=1 ? ? ? 
+        WHERE is_fulfilled=false ? ? ? 
         ORDER BY selected_until DESC, updated_at DESC 
         ?`,
     [
@@ -280,7 +280,7 @@ const createOffer = async (req, res) => {
   );
   const checkExSql = mysql.format(
     `SELECT id FROM offers 
-      WHERE 1=1 ? ?`,
+        WHERE 1=1 ? ?`,
     [
       myRaw.where.userId(req.user.recordId),
       myRaw.where.offerCategoryId(categoryId),
@@ -372,13 +372,13 @@ const updateOffer = async (req, res) => {
 
   const checkExSql = mysql.format(
     `SELECT id, user_id, offer_category_id FROM offers 
-      WHERE 1=1 ?`,
+        WHERE 1=1 ?`,
     [myRaw.where.id(offerId)]
   );
   const updateSql = mysql.format(
     `UPDATE offers 
-      SET district_id=?, title=?, image_url=?, description=?, email=?, phone_number=?, hourly_wage=?, is_negotiable=?, major_id=?, work_experience=?, gender=?, direction=?, institution=?, monthly_wage=?, work_form=?, performer_field=? 
-      WHERE 1=1 ?`,
+        SET district_id=?, title=?, image_url=?, description=?, email=?, phone_number=?, hourly_wage=?, is_negotiable=?, major_id=?, work_experience=?, gender=?, direction=?, institution=?, monthly_wage=?, work_form=?, performer_field=? 
+        WHERE 1=1 ?`,
     [
       districtId,
       title,
@@ -532,22 +532,22 @@ const deleteOffer = async (req, res) => {
   const { offerId } = req.params;
   const checkExSql = mysql.format(
     `SELECT id, user_id FROM offers 
-      WHERE 1=1 ?`,
+        WHERE 1=1 ?`,
     [myRaw.where.id(offerId)]
   );
   const deleteEducationSql = mysql.format(
     `DELETE FROM educations 
-      WHERE 1=1 ?`,
+        WHERE 1=1 ?`,
     [myRaw.where.offerIdRefer(offerId)]
   );
   const deleteLectureSql = mysql.format(
     `DELETE FROM lectures 
-      WHERE 1=1 ?`,
+        WHERE 1=1 ?`,
     [myRaw.where.offerIdRefer(offerId)]
   );
   const deleteOfferSql = mysql.format(
     `DELETE FROM offers 
-      WHERE 1=1 ?`,
+        WHERE 1=1 ?`,
     [myRaw.where.id(offerId)]
   );
 
@@ -571,6 +571,46 @@ const deleteOffer = async (req, res) => {
   }
 };
 
+const fulfillOffer = async (req, res) => {
+  const { offerId } = req.params;
+  const { isFulfilled } = req.body;
+
+  if (isFulfilled === undefined) {
+    return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
+  }
+
+  const checkExSql = mysql.format(
+    `SELECT id, user_id FROM offers 
+        WHERE 1=1 ?`,
+    [myRaw.where.id(offerId)]
+  );
+  const updateSql = mysql.format(
+    `UPDATE offers 
+        SET is_fulfilled=?
+        WHERE 1=1 ?`,
+    [isFulfilled, myRaw.where.id(offerId)]
+  );
+
+  const connection = await pool.getConnection(async (conn) => conn);
+
+  try {
+    const [[exOffer]] = await connection.query(checkExSql);
+    if (!exOffer) {
+      return res.status(403).json({ message: "RECORD NOT EXISTS" });
+    } else if (exOffer.user_id !== req.user.recordId) {
+      return res.status(403).json({ message: "INVALID USER" });
+    }
+
+    await connection.query(updateSql);
+
+    return res.status(204).end();
+  } catch (error) {
+    return res.status(403).json({ message: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
 export {
   detailOffer,
   listOffers,
@@ -578,4 +618,5 @@ export {
   createOffer,
   updateOffer,
   deleteOffer,
+  fulfillOffer,
 };

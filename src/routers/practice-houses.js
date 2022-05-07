@@ -9,6 +9,7 @@ import {
   createHouse,
   updateHouse,
   deleteHouse,
+  fulfillHouse,
 } from "../controllers/pratice-houses";
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.get(routes.ROOT, listHouses);
 router.get(routes.HOUSE_RECOMMEND, recommendHouses);
 router.post(routes.ROOT, checkIsAuthenticated, createHouse);
 router.patch(routes.HOUSE_ID, checkIsAuthenticated, updateHouse);
+router.patch(routes.HOUSE_FULFILL, checkIsAuthenticated, fulfillHouse);
 router.delete(routes.HOUSE_ID, checkIsAuthenticated, deleteHouse);
 
 export default router;
