@@ -83,6 +83,12 @@ const myRaw = {
           WHERE practice_house_id = ${id}
       )`
       ),
+    communityCategoryId: (id) => mysql.raw(`AND P.community_category_id=${id}`),
+    postCreatedSince: (date) =>
+      mysql.raw(date ? `AND P.created_at > '${date}'` : ""),
+    postId: (id) => mysql.raw(`AND P.id=${id}`),
+    postIdRefer: (id) => mysql.raw(`AND community_post_id=${id}`),
+    commentId: (id) => mysql.raw(`AND C.id=${id}`),
   },
   base: {
     limitOffset: (limit, offset) =>
@@ -91,6 +97,9 @@ const myRaw = {
   orderBy: {
     hourlyPrice: (order) =>
       mysql.raw(order === undefined ? "" : `hourly_price ${order} ,`),
+    postTitleLike: (term) =>
+      mysql.raw(term ? `P.title LIKE "%${term}%" DESC, ` : ""),
   },
 };
+
 export default myRaw;
