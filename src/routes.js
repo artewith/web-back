@@ -18,6 +18,10 @@ const routes = {
   HOUSE_ID: "/:houseId",
   HOUSE_RECOMMEND: "/:houseId/recommend",
   HOUSE_FULFILL: "/:houseId/fulfill",
+  COMMUNITY: "/community",
+  POST_ID: "/:postId",
+  POST_COMMENTS: "/:postId/comments",
+  POST_COMMENT_ID: "/:postId/comments/:commentId",
 };
 
 export default routes;

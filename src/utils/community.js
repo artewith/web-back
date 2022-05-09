@@ -1,0 +1,14 @@
+const constants = {
+  PIANO_ID: 1,
+  COMPOSITION_ID: 2,
+  ORCHESTRAL_ID: 3,
+  VOCAL_ID: 4,
+  SECONDHAND_ID: 5,
+
+  DEFAULT_LIMIT: 20,
+  DEFAULT_OFFSET: 0,
+  DEFAULT_POPULAR_LIMIT: 5,
+  DEFAULT_COMMENT_LIMIT: 20,
+};
+
+export { constants };

@@ -14,6 +14,7 @@ import filterRouter from "./routers/filters";
 import authRouter from "./routers/auth";
 import offerRouter from "./routers/offers";
 import practiceHouseRouter from "./routers/practice-houses";
+import communityRouter from "./routers/community";
 
 dotenv.config();
 
@@ -76,5 +77,6 @@ app.use(routes.FILTERS, filterRouter);
 app.use(routes.AUTH, authRouter);
 app.use(routes.OFFERS, offerRouter);
 app.use(routes.PRACTICE_HOUSES, practiceHouseRouter);
+app.use(routes.COMMUNITY, communityRouter);
 
 export default app;
