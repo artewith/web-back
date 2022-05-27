@@ -3,6 +3,7 @@ import mysql from "mysql2/promise";
 import pool from "../db";
 import myRaw from "../utils/myRaw";
 import { constants } from "../utils/offers";
+import { deleteObjectByKey } from "../utils/s3multer";
 
 const detailOffer = async (req, res) => {
   const { offerId } = req.params;
@@ -186,7 +187,6 @@ const createOffer = async (req, res) => {
     districtId,
     majorId,
     title,
-    imageUrl,
     description,
     email,
     phoneNumber,
@@ -253,14 +253,13 @@ const createOffer = async (req, res) => {
   }
 
   const insertSql = mysql.format(
-    `INSERT INTO offers ( user_id, offer_category_id, district_id,  title, image_url, description, email, phone_number, hourly_wage, is_negotiable, major_id, work_experience, gender, direction, institution, monthly_wage, work_form, performer_field, has_lectured ) 
-        VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? )`,
+    `INSERT INTO offers ( user_id, offer_category_id, district_id,  title,  description, email, phone_number, hourly_wage, is_negotiable, major_id, work_experience, gender, direction, institution, monthly_wage, work_form, performer_field, has_lectured ) 
+        VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? )`,
     [
       req.user.recordId,
       categoryId,
       districtId,
       title,
-      imageUrl,
       description,
       email,
       phoneNumber,
@@ -345,7 +344,6 @@ const updateOffer = async (req, res) => {
     districtId,
     majorId,
     title,
-    imageUrl,
     description,
     email,
     phoneNumber,
@@ -377,12 +375,11 @@ const updateOffer = async (req, res) => {
   );
   const updateSql = mysql.format(
     `UPDATE offers 
-        SET district_id=?, title=?, image_url=?, description=?, email=?, phone_number=?, hourly_wage=?, is_negotiable=?, major_id=?, work_experience=?, gender=?, direction=?, institution=?, monthly_wage=?, work_form=?, performer_field=? 
+        SET district_id=?, title=?, description=?, email=?, phone_number=?, hourly_wage=?, is_negotiable=?, major_id=?, work_experience=?, gender=?, direction=?, institution=?, monthly_wage=?, work_form=?, performer_field=? 
         WHERE 1=1 ?`,
     [
       districtId,
       title,
-      imageUrl,
       description,
       email,
       phoneNumber,
@@ -531,7 +528,7 @@ const updateOffer = async (req, res) => {
 const deleteOffer = async (req, res) => {
   const { offerId } = req.params;
   const checkExSql = mysql.format(
-    `SELECT id, user_id FROM offers 
+    `SELECT id, user_id, image_url FROM offers 
         WHERE 1=1 ?`,
     [myRaw.where.id(offerId)]
   );
@@ -558,6 +555,10 @@ const deleteOffer = async (req, res) => {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
     } else if (exOffer.user_id !== req.user.recordId) {
       return res.status(403).json({ message: "INVALID USER" });
+    } else if (exOffer.image_url) {
+      // !: split method and index approach can be vulnerable
+      const imageKey = exOffer.image_url.split(".com/")[1];
+      deleteObjectByKey(imageKey);
     }
 
     await connection.query(deleteEducationSql);
@@ -611,6 +612,48 @@ const fulfillOffer = async (req, res) => {
   }
 };
 
+const putOfferImage = async (req, res) => {
+  const { offerId } = req.params;
+
+  if (!req.file) {
+    return res.status(403).json({ message: "OMISSION IN FILE" });
+  }
+  const { location } = req.file;
+
+  const checkExSql = mysql.format(
+    `SELECT id, user_id, image_url FROM offers 
+        WHERE 1=1 ?`,
+    [myRaw.where.id(offerId)]
+  );
+  const updateSql = mysql.format(
+    `UPDATE offers
+        SET image_url=?
+        WHERE 1=1 ?`,
+    [location, myRaw.where.id(offerId)]
+  );
+  const connection = await pool.getConnection(async (conn) => conn);
+
+  try {
+    const [[exOffer]] = await connection.query(checkExSql);
+    if (!exOffer) {
+      return res.status(403).json({ message: "RECORD NOT EXISTS" });
+    } else if (exOffer.user_id !== req.user.recordId) {
+      return res.status(403).json({ message: "INVALID USER" });
+    } else if (exOffer.image_url) {
+      // !: split method and index approach can be vulnerable
+      const imageKey = exOffer.image_url.split(".com/")[1];
+      deleteObjectByKey(imageKey);
+    }
+    await connection.query(updateSql);
+
+    return res.status(200).json({ location });
+  } catch (error) {
+    return res.status(403).json({ message: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
 export {
   detailOffer,
   listOffers,
@@ -619,4 +662,5 @@ export {
   updateOffer,
   deleteOffer,
   fulfillOffer,
+  putOfferImage,
 };

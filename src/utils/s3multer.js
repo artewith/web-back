@@ -34,4 +34,17 @@ const initializeUpload = (folder) =>
     "NONE"
   );
 
-export default initializeUpload;
+const deleteObjectByKey = (Key) =>
+  s3.deleteObject(
+    {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key,
+    },
+    (err, data) => {
+      if (err) {
+        throw err;
+      }
+    }
+  );
+
+export { initializeUpload, deleteObjectByKey };

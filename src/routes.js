@@ -12,6 +12,7 @@ const routes = {
   GOOGLE_CALLBACK: "/google/callback",
   OFFERS: "/offers",
   OFFER_ID: "/:offerId",
+  OFFER_IMAGE: "/:offerId/image",
   OFFER_RECOMMEND: "/:offerId/recommend",
   OFFER_FULFILL: "/:offerId/fulfill",
   PRACTICE_HOUSES: "/practice-houses",
