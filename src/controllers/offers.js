@@ -555,15 +555,18 @@ const deleteOffer = async (req, res) => {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
     } else if (exOffer.user_id !== req.user.recordId) {
       return res.status(403).json({ message: "INVALID USER" });
-    } else if (exOffer.image_url) {
-      // !: split method and index approach can be vulnerable
-      const imageKey = exOffer.image_url.split(".com/")[1];
-      deleteObjectByKey(imageKey);
     }
 
     await connection.query(deleteEducationSql);
     await connection.query(deleteLectureSql);
     await connection.query(deleteOfferSql);
+
+    if (exOffer.image_url) {
+      // !: split method and index approach can be vulnerable
+      const imageKey = exOffer.image_url.split(".com/")[1];
+      deleteObjectByKey(imageKey);
+    }
+
     return res.status(204).end();
   } catch (error) {
     return res.status(403).json({ message: error.message });
@@ -639,12 +642,15 @@ const putOfferImage = async (req, res) => {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
     } else if (exOffer.user_id !== req.user.recordId) {
       return res.status(403).json({ message: "INVALID USER" });
-    } else if (exOffer.image_url) {
+    }
+
+    await connection.query(updateSql);
+
+    if (exOffer.image_url) {
       // !: split method and index approach can be vulnerable
       const imageKey = exOffer.image_url.split(".com/")[1];
       deleteObjectByKey(imageKey);
     }
-    await connection.query(updateSql);
 
     return res.status(200).json({ location });
   } catch (error) {
