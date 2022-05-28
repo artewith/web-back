@@ -112,11 +112,12 @@ const createPost = async (req, res) => {
     return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
+  const jsonContent = JSON.stringify(content);
   const insertSql = mysql.format(
-    `INSERT INTO community_posts(user_id, community_category_id, title, content)
+    `INSERT INTO community_posts(user_id, community_category_id, title, content_quill)
         VALUES(?,?,?,?)
     `,
-    [recordId, categoryId, title, content]
+    [recordId, categoryId, title, jsonContent]
   );
   const connection = await pool.getConnection(async (conn) => conn);
 
@@ -132,6 +133,7 @@ const createPost = async (req, res) => {
     connection.release();
   }
 };
+
 const updatePost = async (req, res) => {
   const { recordId } = req.user;
   const { postId } = req.params;
@@ -144,6 +146,7 @@ const updatePost = async (req, res) => {
     return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
+  const jsonContent = JSON.stringify(content);
   const checkExSql = mysql.format(
     `SELECT id, user_id FROM community_posts AS P
         WHERE 1=1 ?
@@ -152,10 +155,10 @@ const updatePost = async (req, res) => {
   );
   const updateSql = mysql.format(
     `UPDATE community_posts AS P
-        SET title=?, content=?
+        SET title=?, content_quill=?
         WHERE 1=1 ?
     `,
-    [title, content, myRaw.where.postId(postId)]
+    [title, jsonContent, myRaw.where.postId(postId)]
   );
   const connection = await pool.getConnection(async (conn) => conn);
 
