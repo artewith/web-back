@@ -9,7 +9,7 @@ const detailOffer = async (req, res) => {
   const { offerId } = req.params;
 
   const offerSql = mysql.format(
-    `SELECT O.*, U.name, M.name AS major_name, D.name AS district, R.name AS region, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
+    `SELECT O.*, U.name AS user_name, U.image_url AS user_image_url, M.name AS major_name, D.name AS district, R.name AS region, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM offers AS O 
         JOIN users AS U ON O.user_id=U.id 
         LEFT JOIN major AS M ON O.major_id=M.id 
@@ -85,7 +85,7 @@ const listOffers = async (req, res) => {
   const currentDate = new Date();
 
   const commonOfferSql = mysql.format(
-    `SELECT  O.*, U.name, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
+    `SELECT  O.*, U.name AS user_name, U.image_url AS user_image_url, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM offers AS O 
         JOIN users AS U ON O.user_id=U.id 
         LEFT JOIN major AS M ON O.major_id=M.id 
@@ -111,7 +111,7 @@ const listOffers = async (req, res) => {
     ]
   );
   const selectedOfferSql = mysql.format(
-    `SELECT O.*, U.name, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
+    `SELECT O.*, U.name AS user_name, U.image_url AS user_image_url, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM offers AS O 
         JOIN users AS U ON O.user_id=U.id 
         LEFT JOIN major AS M ON O.major_id=M.id 
@@ -151,7 +151,7 @@ const recommendOffers = async (req, res) => {
     ? LIMIT * (req.query.page - 1)
     : constants.DEFAULT_OFFSET;
   const sql = mysql.format(
-    `SELECT  O.*, U.name, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
+    `SELECT  O.*, U.name AS user_name, U.image_url AS user_image_url, M.name AS major_name, D.name AS district, R.name AS region, L.institution AS lectured_institution, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM offers AS O 
         JOIN users AS U ON O.user_id=U.id 
         LEFT JOIN major AS M ON O.major_id=M.id 
