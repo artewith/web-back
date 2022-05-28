@@ -16,6 +16,7 @@ import offerRouter from "./routers/offers";
 import practiceHouseRouter from "./routers/practice-houses";
 import communityRouter from "./routers/community";
 import userRouter from "./routers/users";
+import advertisementRouter from "./routers/advertisements";
 
 dotenv.config();
 
@@ -80,5 +81,6 @@ app.use(routes.OFFERS, offerRouter);
 app.use(routes.PRACTICE_HOUSES, practiceHouseRouter);
 app.use(routes.COMMUNITY, communityRouter);
 app.use(routes.USERS, userRouter);
+app.use(routes.ADVERTISEMENTS, advertisementRouter);
 
 export default app;

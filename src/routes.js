@@ -28,6 +28,8 @@ const routes = {
   POST_ID: "/:postId",
   POST_COMMENTS: "/:postId/comments",
   POST_COMMENT_ID: "/:postId/comments/:commentId",
+  ADVERTISEMENTS: "/advertisements",
+  RANDOM: "/random",
 };
 
 export default routes;
