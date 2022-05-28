@@ -1,6 +1,8 @@
 import pool from "../db";
-import filters from "../utils/filters";
+import { constants, boxes } from "../utils/filters";
 
+const { LESSON_ID, TUTOR_ID, ACCOMPANIST_RECRUIT_ID, ACCOMPANIST_RESUME_ID } =
+  constants;
 const {
   education,
   hasLectured,
@@ -11,10 +13,10 @@ const {
   workForm,
   performerField,
   price,
-} = filters;
+} = boxes;
 
-const filterController = async (req, res) => {
-  const { offertype } = req.query;
+const offerFilters = async (req, res) => {
+  const { categoryId } = req.query;
   const connection = await pool.getConnection(async (conn) => conn);
 
   const [major] = await connection.query(
@@ -30,33 +32,82 @@ const filterController = async (req, res) => {
     );
     region[i].district = district;
   }
-  const [facility] = await connection.query(
-    "SELECT * FROM facility ORDER BY id"
-  );
+  const numId = Number(categoryId);
+
   connection.release();
 
   const filters = {
     region,
-    major: offertype === "입시레슨" ? major : null,
-    education: offertype === "입시레슨" ? education : null,
-    hasLectured: offertype === "입시레슨" ? hasLectured : null,
-    gender: offertype === "입시레슨" ? gender : null,
+    major: numId === LESSON_ID ? major : null,
+    education: numId === LESSON_ID ? education : null,
+    hasLectured: numId === LESSON_ID ? hasLectured : null,
+    gender: numId === LESSON_ID ? gender : null,
     career:
-      (offertype === "입시레슨") | (offertype === "반주자 이력서")
-        ? career
-        : null,
+      (numId === LESSON_ID) | (numId === ACCOMPANIST_RESUME_ID) ? career : null,
     wage:
-      offertype === "학원강사"
+      numId === TUTOR_ID
         ? academyWage
-        : (offertype === "반주자 공고") | (offertype === "반주자 이력서")
+        : (numId === ACCOMPANIST_RECRUIT_ID) | (numId === ACCOMPANIST_RESUME_ID)
         ? accompanyWage
         : null,
-    workForm: offertype === "학원강사" ? workForm : null,
-    performerField: offertype === "반주자 공고" ? performerField : null,
-    facility: offertype === "연습실" ? facility : null,
-    price: offertype === "연습실" ? price : null,
+    workForm: numId === TUTOR_ID ? workForm : null,
+    performerField: numId === ACCOMPANIST_RECRUIT_ID ? performerField : null,
   };
   res.status(200).json(filters);
 };
 
-export default filterController;
+const practiceHouseFilters = async (req, res) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+
+  const [region] = await connection.query(
+    "SELECT id AS 'key', name FROM region ORDER BY id;"
+  );
+  const [facility] = await connection.query(
+    "SELECT * FROM facility ORDER BY id"
+  );
+
+  connection.release();
+
+  const filters = {
+    region,
+    facility,
+    price,
+  };
+
+  res.status(200).json(filters);
+};
+
+const userFilters = async (req, res) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+
+  const [major] = await connection.query(
+    `SELECT id AS 'key', name FROM major ORDER BY id`
+  );
+  const [job] = await connection.query(
+    `SELECT id AS 'key', name FROM job ORDER BY id`
+  );
+  const [region] = await connection.query(
+    `SELECT id AS 'key', name FROM region ORDER BY id`
+  );
+
+  for (let i = 0; i < region.length; i++) {
+    const [district] = await connection.query(
+      `SELECT id AS 'key', name FROM district WHERE region_id = ? ORDER BY id`,
+      [i + 1]
+    );
+    region[i].district = district;
+  }
+
+  connection.release();
+
+  const filters = {
+    region,
+    major,
+    job,
+    gender,
+  };
+
+  res.status(200).json(filters);
+};
+
+export { offerFilters, practiceHouseFilters, userFilters };
