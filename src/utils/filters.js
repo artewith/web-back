@@ -6,7 +6,7 @@ const constants = {
 };
 
 const boxes = {
-  career: [
+  careers: [
     { key: 1, name: "2년 미만" },
     { key: 2, name: "2년" },
     { key: 3, name: "3년" },
@@ -18,7 +18,7 @@ const boxes = {
     { key: 9, name: "9년" },
     { key: 10, name: "10년 이상" },
   ],
-  education: [
+  degrees: [
     { key: "학사", name: "학사" },
     { key: "석사", name: "석사" },
     { key: "박사", name: "박사" },
@@ -26,12 +26,12 @@ const boxes = {
     { key: "최고연주자과정", name: "최고연주자과정" },
     { key: null, name: "미선택" },
   ],
-  gender: [
+  genders: [
     { key: 1, name: "남성" },
     { key: 2, name: "여성" },
     { key: null, name: "제공안함" },
   ],
-  academyWage: [
+  academyWages: [
     { key: 11000, name: "11,000이상" },
     { key: 12000, name: "12,000이상" },
     { key: 13000, name: "13,000이상" },
@@ -42,7 +42,7 @@ const boxes = {
     { key: 18000, name: "18,000이상" },
     { key: 19000, name: "19,000이상" },
   ],
-  accompanyWage: [
+  accompanyWages: [
     { key: 20000, name: "2.0이상" },
     { key: 25000, name: "2.5이상" },
     { key: 30000, name: "3.0이상" },
@@ -54,16 +54,16 @@ const boxes = {
     { key: 60000, name: "6.0이상" },
     { key: 65000, name: "6.5이상" },
   ],
-  workForm: [
+  workForms: [
     { key: "파트", name: "파트" },
     { key: "전임", name: "전임" },
     { key: "전임 & 파트", name: "전임 & 파트" },
   ],
-  hasLectured: [
+  hasLectureds: [
     { key: true, name: "유" },
     { key: false, name: "무" },
   ],
-  performerField: [
+  performerFields: [
     { key: "피아노", name: "피아노" },
     { key: "성악", name: "성악" },
     { key: "작곡", name: "작곡" },
@@ -87,7 +87,7 @@ const boxes = {
     { key: "합창", name: "합창" },
     { key: "콘체르토", name: "콘체르토" },
   ],
-  price: [
+  prices: [
     { key: "ASC", name: "가격 낮은 순" },
     { key: "DESC", name: "가격 높은 순" },
   ],
