@@ -1,4 +1,11 @@
-const filters = {
+const constants = {
+  LESSON_ID: 1,
+  TUTOR_ID: 2,
+  ACCOMPANIST_RECRUIT_ID: 3,
+  ACCOMPANIST_RESUME_ID: 4,
+};
+
+const boxes = {
   career: [
     { key: 1, name: "2년 미만" },
     { key: 2, name: "2년" },
@@ -20,8 +27,8 @@ const filters = {
     { key: null, name: "미선택" },
   ],
   gender: [
-    { key: 0, name: "남성" },
-    { key: 1, name: "여성" },
+    { key: 1, name: "남성" },
+    { key: 2, name: "여성" },
     { key: null, name: "제공안함" },
   ],
   academyWage: [
@@ -81,9 +88,9 @@ const filters = {
     { key: "콘체르토", name: "콘체르토" },
   ],
   price: [
-    { key: "ASC", name: "낮은 순" },
-    { key: "DESC", name: "높은 순" },
+    { key: "ASC", name: "가격 낮은 순" },
+    { key: "DESC", name: "가격 높은 순" },
   ],
 };
 
-export default filters;
+export { constants, boxes };
