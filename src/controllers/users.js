@@ -33,32 +33,44 @@ const detailUser = async (req, res) => {
   }
 };
 
-// ?: Is this essential? this is just a part of updateUser.
-const updateUserOnRegister = async (req, res) => {
+const updateUser = async (req, res) => {
   const { recordId } = req.user;
-  const { isAllowingAds, name, districtId, jobId, majorId } = req.body;
+  const { isAllowingAds, name, districtId, jobId, majorId, gender } = req.body;
 
   const checkExSql = mysql.format(
     `SELECT id FROM users
         WHERE 1=1 ?`,
     [myRaw.where.id(recordId)]
   );
-  // !: Modify SET part. let's handle only changed items by the client.
   const updateSql = mysql.format(
     `UPDATE users AS U
-            SET is_allowing_ads=?, name=?, district_id=?, job_id=?, major_id=?
+            SET is_allowing_ads=?, name=?, district_id=?, job_id=?, major_id=?, gender=?
             WHERE 1=1 ?`,
-    [isAllowingAds, name, districtId, jobId, majorId, myRaw.where.uId(recordId)]
+    [
+      isAllowingAds,
+      name,
+      districtId,
+      jobId,
+      majorId,
+      gender,
+      myRaw.where.uId(recordId),
+    ]
   );
   const connection = await pool.getConnection(async (conn) => conn);
 
-  const [[exUser]] = await connection.query(checkExSql);
-  if (!exUser) {
-    res.status(403).json({ message: "RECORD NOT EXISTS" });
-  }
-  await connection.query(updateSql);
+  try {
+    const [[exUser]] = await connection.query(checkExSql);
+    if (!exUser) {
+      res.status(403).json({ message: "RECORD NOT EXISTS" });
+    }
+    await connection.query(updateSql);
 
-  res.status(200).end();
+    res.status(204).end();
+  } catch (error) {
+    return res.status(403).json({ message: error.message });
+  } finally {
+    connection.release();
+  }
 };
 
 const putUserImage = async (req, res) => {
@@ -96,7 +108,7 @@ const putUserImage = async (req, res) => {
       deleteObjectByKey(Key);
     }
 
-    return res.status(200).json({ location });
+    return res.status(204).end();
   } catch (error) {
     return res.status(403).json({ message: error.message });
   } finally {
@@ -104,4 +116,4 @@ const putUserImage = async (req, res) => {
   }
 };
 
-export { detailUser, updateUserOnRegister, putUserImage };
+export { detailUser, updateUser, putUserImage };
