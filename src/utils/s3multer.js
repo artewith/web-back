@@ -29,7 +29,7 @@ const initializeUpload = (folder) =>
           );
         },
       }),
-      limits: { files: 1, fileSize: 1000 * 1000 * 100 },
+      limits: { files: 12, fileSize: 1000 * 1000 * 100 },
     },
     "NONE"
   );
@@ -40,6 +40,7 @@ const deleteObjectByKey = (Key) =>
       Bucket: process.env.AWS_BUCKET_NAME,
       Key,
     },
+    // !: needs Refactoring
     (err, data) => {
       if (err) {
         throw err;
@@ -47,4 +48,21 @@ const deleteObjectByKey = (Key) =>
     }
   );
 
-export { initializeUpload, deleteObjectByKey };
+const deleteObjects = (Objects) =>
+  s3.deleteObjects(
+    {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Delete: {
+        Objects,
+        Quiet: false,
+      },
+    },
+    // !: needs Refactoring
+    (err, data) => {
+      if (err) {
+        throw err;
+      }
+    }
+  );
+
+export { initializeUpload, deleteObjectByKey, deleteObjects };
