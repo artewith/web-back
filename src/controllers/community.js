@@ -25,7 +25,8 @@ const listPosts = async (req, res) => {
   const dateAWeekAgo = date.toISOString().split(".")[0];
 
   const commonSql = mysql.format(
-    `SELECT P.*, U.name AS user_name, U.id AS user_id FROM community_posts AS P
+    `SELECT P.id, P.community_category_id, P.title, P.view_count, P.created_at, U.name AS user_name, U.id AS user_id, U.image_url AS user_image_url
+        FROM community_posts AS P
         JOIN users AS U ON P.user_id=U.id
         WHERE 1=1 ?
         ORDER BY ? created_at DESC
@@ -38,7 +39,8 @@ const listPosts = async (req, res) => {
     ]
   );
   const popularSql = mysql.format(
-    `SELECT P.*, U.name AS user_name, U.id AS user_id FROM community_posts AS P
+    `SELECT P.id, P.community_category_id, P.title, P.view_count, P.created_at, U.name AS user_name, U.id AS user_id, U.image_url AS user_image_url
+        FROM community_posts AS P
         JOIN users AS U ON P.user_id=U.id
         WHERE 1=1 ? ?
         ORDER BY view_count DESC, created_at DESC
@@ -71,7 +73,8 @@ const detailPost = async (req, res) => {
   }
 
   const postSql = mysql.format(
-    `SELECT P.*, U.id AS user_id, U.name AS user_name FROM community_posts AS P
+    `SELECT P.*, U.id AS user_id, U.name AS user_name, U.image_url AS user_image_url
+        FROM community_posts AS P
         JOIN users AS U ON P.user_id=U.id
         WHERE 1=1 ?
     `,
@@ -179,6 +182,7 @@ const updatePost = async (req, res) => {
     connection.release();
   }
 };
+
 const deletePost = async (req, res) => {
   const { recordId } = req.user;
   const { postId } = req.params;
@@ -239,7 +243,8 @@ const listComments = async (req, res) => {
     [myRaw.where.postId(postId)]
   );
   const commentsSql = mysql.format(
-    `SELECT C.*, U.id AS user_id, U.name AS user_name FROM community_comments AS C
+    `SELECT C.*, U.id AS user_id, U.name AS user_name, U.image_url AS user_image_url 
+        FROM community_comments AS C
         JOIN users AS U ON C.user_id=U.id
         WHERE 1=1 ?
         ORDER BY created_at DESC
