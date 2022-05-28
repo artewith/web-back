@@ -3,6 +3,7 @@ import mysql from "mysql2/promise";
 const myRaw = {
   where: {
     id: (id) => mysql.raw(id ? `AND id=${id}` : ""),
+    uId: (id) => mysql.raw(id ? `AND U.id=${id}` : ""),
     ids: (ids) => mysql.raw(ids ? `AND id IN (${[ids]})` : ""),
     offerCategoryId: (id) =>
       mysql.raw(
