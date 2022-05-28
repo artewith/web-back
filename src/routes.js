@@ -17,6 +17,8 @@ const routes = {
   OFFER_FULFILL: "/:offerId/fulfill",
   PRACTICE_HOUSES: "/practice-houses",
   HOUSE_ID: "/:houseId",
+  HOUSE_IMAGE: "/:houseId/image",
+  ROOM_IMAGES: "/:houseId/room-images",
   HOUSE_RECOMMEND: "/:houseId/recommend",
   HOUSE_FULFILL: "/:houseId/fulfill",
   COMMUNITY: "/community",
