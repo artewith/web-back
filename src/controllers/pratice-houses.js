@@ -9,7 +9,11 @@ const detailHouse = async (req, res) => {
   const { houseId } = req.params;
 
   const houseSql = mysql.format(
-    `SELECT O.* FROM practice_houses AS O 
+    `SELECT O.*, D.name AS district_name, R.id AS region_id, R.name AS region_name, U.name AS user_name
+        FROM practice_houses AS O 
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN region AS R ON D.region_id=R.id
+        JOIN users AS U ON O.user_id=U.id
         WHERE 1=1 ?`,
     [myRaw.where.offerId(houseId)]
   );
@@ -75,8 +79,12 @@ const listHouses = async (req, res) => {
   const currentDate = new Date();
 
   const commonHouseSql = mysql.format(
-    `SELECT O.* FROM practice_houses AS O  
+    `SELECT O.*, D.name AS district_name, R.id AS region_id, R.name AS region_name, U.name AS user_name
+        FROM practice_houses AS O 
         LEFT JOIN practice_houses_facility AS PF ON PF.practice_house_id=O.id
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN region AS R ON D.region_id=R.id
+        JOIN users AS U ON O.user_id=U.id
         WHERE is_fulfilled=false ? ? ?
         GROUP BY O.id
         ORDER BY selected_until DESC, ? updated_at DESC 
@@ -89,9 +97,12 @@ const listHouses = async (req, res) => {
       myRaw.base.limitOffset(LIMIT, OFFSET),
     ]
   );
-  console.log(commonHouseSql);
   const selectedHouseSql = mysql.format(
-    `SELECT O.* FROM practice_houses AS O
+    `SELECT O.*, D.name AS district_name, R.id AS region_id, R.name AS region_name, U.name AS user_name
+        FROM practice_houses AS O
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN region AS R ON D.region_id=R.id
+        JOIN users AS U ON O.user_id=U.id
         WHERE 1=1 ?
         ORDER BY updated_at DESC
         ?`,
@@ -125,8 +136,11 @@ const recommendHouses = async (req, res) => {
     : constants.DEFAULT_OFFSET;
 
   const sql = mysql.format(
-    `SELECT  O.*
-        FROM practice_houses AS O 
+    `SELECT O.*, D.name AS district_name, R.id AS region_id, R.name AS region_name, U.name AS user_name
+        FROM practice_houses AS O
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN region AS R ON D.region_id=R.id
+        JOIN users AS U ON O.user_id=U.id
         WHERE is_fulfilled=false ? ?
         ORDER BY selected_until DESC, updated_at DESC 
         ?`,
