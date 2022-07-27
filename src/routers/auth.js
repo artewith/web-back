@@ -17,6 +17,7 @@ import {
   naverCallbackController,
   googleCallbackController,
 } from "../controllers/auth";
+import { snsAuth, role, gender } from "../utils/user";
 
 dotenv.config();
 
@@ -31,33 +32,29 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       const connection = await pool.getConnection(async (conn) => conn);
-
       try {
         const [[userRecord]] = await connection.query(
-          "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
+          "SELECT * FROM users WHERE sns_id = ? AND sns_auth_api_id IN (SELECT id FROM sns_auth_api WHERE name = ?);",
           [profile.id, profile.provider]
         );
+
         if (userRecord) {
           done(null, {
             provider: profile.provider,
-            id: profile.id,
-            recordId: userRecord.id,
-            isSuperUser: userRecord.is_superuser,
+            id: userRecord.id,
+            role_id: userRecord.role_id,
           });
         } else {
           await connection.query(
-            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url, gender, age_range) VALUES (?,?,?,?,?,?,?);",
+            "INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url, gender, age_range) VALUES (?,?,?,?,?,?,?,?);",
             [
-              1,
+              role.MEMBER_ID,
+              snsAuth.KAKAO_ID,
               profile.id,
               profile.username,
               profile._json.kakao_account.email,
               profile._json.properties.profile_image,
-              profile._json.kakao_account.gender === "male"
-                ? 1
-                : profile._json.kakao_account.gender === "female"
-                ? 2
-                : profile._json.kakao_account.gender === undefined && null,
+              gender[profile._json.kakao_account.gender],
               profile._json.kakao_account.age_range,
             ]
           );
@@ -65,10 +62,11 @@ passport.use(
         const [[{ lastInsertId }]] = await connection.query(
           "SELECT LAST_INSERT_ID() AS lastInsertId;"
         );
+
+        // !: role_id
         return done(null, {
           provider: profile.provider,
-          id: profile.id,
-          recordId: lastInsertId,
+          id: lastInsertId,
         });
       } catch (error) {
         return done(error);
@@ -94,7 +92,7 @@ passport.use(
 
       try {
         const [[userRecord]] = await connection.query(
-          "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
+          "SELECT * FROM users WHERE sns_id = ? AND sns_auth_api_id IN (SELECT id FROM sns_auth_api WHERE name = ?);",
           [profile.id, profile.provider]
         );
         if (userRecord) {
@@ -106,18 +104,14 @@ passport.use(
           });
         } else {
           await connection.query(
-            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url, gender, age_range, phone_number) VALUES (?,?,?,?,?,?,?,?);",
+            "INSERT INTO users (sns_auth_api_id, sns_id, name, email, image_url, gender, age_range, phone_number) VALUES (?,?,?,?,?,?,?,?);",
             [
               2,
               profile.id,
               profile.name,
               profile.email,
               profile.profileImage,
-              profile.gender === "M"
-                ? 1
-                : profile.gender === "F"
-                ? 2
-                : profile.gender === undefined && null,
+              gender[profile.gender],
               profile.age,
               profile.mobile,
             ]
@@ -153,7 +147,7 @@ passport.use(
 
       try {
         const [[userRecord]] = await connection.query(
-          "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
+          "SELECT * FROM users WHERE sns_id = ? AND sns_auth_api_id IN (SELECT id FROM sns_auth_api WHERE name = ?);",
           [profile.id, profile.provider]
         );
         if (userRecord) {
@@ -165,7 +159,7 @@ passport.use(
           });
         } else {
           await connection.query(
-            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url) VALUES (?,?,?,?,?);",
+            "INSERT INTO users (sns_auth_api_id, sns_id, name, email, image_url) VALUES (?,?,?,?,?);",
             [
               3,
               profile.id,
@@ -192,13 +186,21 @@ passport.use(
   )
 );
 
-router.get(routes.LOGOUT, checkIsAuthenticated, logoutController);
-
 router.get(
-  routes.KAKAO,
-  checkIsNotAuthenticated,
-  passport.authenticate("kakao")
+  "/test",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res, next) => {
+    console.log("----JWT authenticate done");
+    try {
+      res.json({ result: true });
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  }
 );
+
+router.get(routes.KAKAO, passport.authenticate("kakao"));
 
 router.get(
   routes.KAKAO_CALLBACK,

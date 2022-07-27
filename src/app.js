@@ -7,6 +7,7 @@ import cors from "cors";
 import passport from "passport";
 import compression from "compression";
 import dotenv from "dotenv";
+import { ExtractJwt, Strategy as JWTStrategy } from "passport-jwt";
 
 import pool from "./db";
 import routes from "./routes";
@@ -29,23 +30,23 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    store: new MySQLStore({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      port: process.env.DB_PORT,
-    }),
-  })
-);
+// app.use(
+// session({
+// secret: process.env.SESSION_SECRET,
+// resave: false,
+// saveUninitialized: true,
+// store: new MySQLStore({
+// host: process.env.DB_HOST,
+// user: process.env.DB_USER,
+// password: process.env.DB_PASSWORD,
+// database: process.env.DB_NAME,
+// port: process.env.DB_PORT,
+// }),
+// })
+// );
 app.use(passport.initialize());
-app.use(passport.authenticate("session"));
-app.use(passport.session());
+// app.use(passport.authenticate("session"));
+// app.use(passport.session());
 
 // passport middleware
 passport.serializeUser((user, cb) => {
@@ -58,7 +59,7 @@ passport.deserializeUser((user, cb) => {
     const connection = await pool.getConnection(async (conn) => conn);
     try {
       const [[userRecord]] = await connection.query(
-        "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
+        "SELECT * FROM users WHERE sns_id = ? AND sns_auth_api_id IN (SELECT id FROM sns_auth_api WHERE name = ?);",
         [user.id, user.provider]
       );
       if (userRecord) {
@@ -73,6 +74,32 @@ passport.deserializeUser((user, cb) => {
     }
   });
 });
+const JWTConfig = {
+  jwtFromRequest: ExtractJwt.fromHeader("authorization"),
+  secretOrKey: process.env.JWT_SECRET,
+};
+
+const JWTVerify = async (payload, done) => {
+  console.log(payload);
+  const connection = await pool.getConnection(async (conn) => conn);
+  try {
+    // sns_auth_api_id 가 필요한가?
+    const [[userRecord]] = await connection.query(
+      "SELECT * FROM users WHERE id=?",
+      [payload.user_id]
+    );
+    if (userRecord) {
+      return done(null, userRecord);
+    } else {
+      return done(null, null);
+    }
+  } catch (error) {
+    return done(error, null);
+  } finally {
+    connection.release();
+  }
+};
+passport.use("jwt", new JWTStrategy(JWTConfig, JWTVerify));
 
 // routers
 app.use(routes.FILTERS, filterRouter);
