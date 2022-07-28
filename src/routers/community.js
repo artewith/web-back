@@ -1,7 +1,7 @@
 import express from "express";
 
 import routes from "../routes";
-import { checkIsAuthenticated } from "../middlewares/auth";
+import { validate } from "../middlewares/auth";
 import {
   listPosts,
   detailPost,
@@ -17,14 +17,14 @@ import {
 const router = express.Router();
 
 router.get(routes.ROOT, listPosts);
-router.get(routes.POST_ID, checkIsAuthenticated, detailPost);
-router.post(routes.ROOT, checkIsAuthenticated, createPost);
-router.patch(routes.POST_ID, checkIsAuthenticated, updatePost);
-router.delete(routes.POST_ID, checkIsAuthenticated, deletePost);
+router.get(routes.POST_ID, validate, detailPost);
+router.post(routes.ROOT, validate, createPost);
+router.patch(routes.POST_ID, validate, updatePost);
+router.delete(routes.POST_ID, validate, deletePost);
 
-router.get(routes.POST_COMMENTS, checkIsAuthenticated, listComments);
-router.post(routes.POST_COMMENTS, checkIsAuthenticated, createComment);
-router.patch(routes.POST_COMMENT_ID, checkIsAuthenticated, updateComment);
-router.delete(routes.POST_COMMENT_ID, checkIsAuthenticated, deleteComment);
+router.get(routes.POST_COMMENTS, validate, listComments);
+router.post(routes.POST_COMMENTS, validate, createComment);
+router.patch(routes.POST_COMMENT_ID, validate, updateComment);
+router.delete(routes.POST_COMMENT_ID, validate, deleteComment);
 
 export default router;

@@ -1,23 +1,17 @@
-const logoutController = (req, res) => {
-  req.session.destroy();
-  res.status(200).end();
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const handleCallback = (req, res) => {
+  const token = jwt.sign(req.user, process.env.JWT_SECRET, {
+    algorithm: process.env.JWT_ALGORITHM,
+    issuer: process.env.JWT_ISSUER,
+    expiresIn: process.env.JWT_EXP,
+  });
+
+  res.setHeader("Authorization", token);
+  return res.status(200).end();
 };
 
-const kakaoCallbackController = (req, res) => {
-  res.status(200).end();
-};
-
-const naverCallbackController = (req, res) => {
-  res.status(200).end();
-};
-
-const googleCallbackController = (req, res) => {
-  res.status(200).end();
-};
-
-export {
-  logoutController,
-  kakaoCallbackController,
-  naverCallbackController,
-  googleCallbackController,
-};
+export { handleCallback };

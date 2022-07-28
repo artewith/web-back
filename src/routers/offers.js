@@ -1,7 +1,7 @@
 import express from "express";
 
 import routes from "../routes";
-import { checkIsAuthenticated } from "../middlewares/auth";
+import { validate } from "../middlewares/auth";
 import { initializeUpload } from "../utils/s3multer";
 import {
   detailOffer,
@@ -17,18 +17,18 @@ import {
 const router = express.Router();
 const upload = initializeUpload("offers");
 
-router.get(routes.OFFER_ID, checkIsAuthenticated, detailOffer);
+router.get(routes.OFFER_ID, validate, detailOffer);
 router.get(routes.ROOT, listOffers);
 router.get(routes.OFFER_RECOMMEND, recommendOffers);
-router.post(routes.ROOT, checkIsAuthenticated, createOffer);
-router.patch(routes.OFFER_ID, checkIsAuthenticated, updateOffer);
+router.post(routes.ROOT, validate, createOffer);
+router.patch(routes.OFFER_ID, validate, updateOffer);
 router.patch(
   routes.OFFER_IMAGE,
-  checkIsAuthenticated,
+  validate,
   upload.single("single"),
   putOfferImage
 );
-router.patch(routes.OFFER_FULFILL, checkIsAuthenticated, fulfillOffer);
-router.delete(routes.OFFER_ID, checkIsAuthenticated, deleteOffer);
+router.patch(routes.OFFER_FULFILL, validate, fulfillOffer);
+router.delete(routes.OFFER_ID, validate, deleteOffer);
 
 export default router;
