@@ -1,7 +1,7 @@
 import express from "express";
 
 import routes from "../routes";
-import { checkIsAuthenticated } from "../middlewares/auth";
+import { validate } from "../middlewares/auth";
 import { initializeUpload } from "../utils/s3multer";
 
 import {
@@ -20,25 +20,25 @@ const router = express.Router();
 const uploadHouse = initializeUpload("practice_houses");
 const uploadRooms = initializeUpload("rooms");
 
-router.get(routes.HOUSE_ID, checkIsAuthenticated, detailHouse);
+router.get(routes.HOUSE_ID, validate, detailHouse);
 router.get(routes.ROOT, listHouses);
 router.get(routes.HOUSE_RECOMMEND, recommendHouses);
-router.post(routes.ROOT, checkIsAuthenticated, createHouse);
-router.patch(routes.HOUSE_ID, checkIsAuthenticated, updateHouse);
+router.post(routes.ROOT, validate, createHouse);
+router.patch(routes.HOUSE_ID, validate, updateHouse);
 router.patch(
   routes.HOUSE_IMAGE,
-  checkIsAuthenticated,
+  validate,
   uploadHouse.single("single"),
   putHouseImage
 );
 router.patch(
   routes.ROOM_IMAGES,
-  checkIsAuthenticated,
+  validate,
   uploadRooms.array("multiple"),
   putRoomImages
 );
 
-router.patch(routes.HOUSE_FULFILL, checkIsAuthenticated, fulfillHouse);
-router.delete(routes.HOUSE_ID, checkIsAuthenticated, deleteHouse);
+router.patch(routes.HOUSE_FULFILL, validate, fulfillHouse);
+router.delete(routes.HOUSE_ID, validate, deleteHouse);
 
 export default router;

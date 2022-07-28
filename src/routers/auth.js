@@ -7,16 +7,8 @@ import dotenv from "dotenv";
 
 import routes from "../routes";
 import pool from "../db";
-import {
-  checkIsAuthenticated,
-  checkIsNotAuthenticated,
-} from "../middlewares/auth";
-import {
-  logoutController,
-  kakaoCallbackController,
-  naverCallbackController,
-  googleCallbackController,
-} from "../controllers/auth";
+import { handleCallback } from "../controllers/auth";
+import { SNS_AUTH_API_ID, ROLE_ID, GENDER_ID } from "../utils/user";
 
 dotenv.config();
 
@@ -27,49 +19,49 @@ passport.use(
   new KakaoStrategy(
     {
       clientID: process.env.KAKAO_KEY,
+      clientSecret: process.env.KAKAO_SECRET,
       callbackURL: routes.AUTH + routes.KAKAO_CALLBACK,
     },
     async (accessToken, refreshToken, profile, done) => {
       const connection = await pool.getConnection(async (conn) => conn);
+      const user = {
+        provider: profile.provider,
+        accessToken,
+      };
 
       try {
-        const [[userRecord]] = await connection.query(
-          "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
-          [profile.id, profile.provider]
+        const [[record]] = await connection.query(
+          `SELECT * FROM users 
+                WHERE sns_id=? 
+                AND sns_auth_api_id=?`,
+          [profile.id, SNS_AUTH_API_ID[profile.provider]]
         );
-        if (userRecord) {
-          done(null, {
-            provider: profile.provider,
-            id: profile.id,
-            recordId: userRecord.id,
-            isSuperUser: userRecord.is_superuser,
-          });
+
+        if (record) {
+          user.id = record.id;
         } else {
           await connection.query(
-            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url, gender, age_range) VALUES (?,?,?,?,?,?,?);",
+            `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url, gender, age_range) 
+                VALUES (?,?,?,?,?,?,?,?)`,
             [
-              1,
+              ROLE_ID.member,
+              SNS_AUTH_API_ID.kakao,
               profile.id,
               profile.username,
               profile._json.kakao_account.email,
               profile._json.properties.profile_image,
-              profile._json.kakao_account.gender === "male"
-                ? 1
-                : profile._json.kakao_account.gender === "female"
-                ? 2
-                : profile._json.kakao_account.gender === undefined && null,
+              GENDER_ID[profile._json.kakao_account.gender],
               profile._json.kakao_account.age_range,
             ]
           );
+
+          const [[{ lastInsertId }]] = await connection.query(
+            `SELECT LAST_INSERT_ID() AS lastInsertId`
+          );
+          user.id = lastInsertId;
         }
-        const [[{ lastInsertId }]] = await connection.query(
-          "SELECT LAST_INSERT_ID() AS lastInsertId;"
-        );
-        return done(null, {
-          provider: profile.provider,
-          id: profile.id,
-          recordId: lastInsertId,
-        });
+
+        return done(null, user);
       } catch (error) {
         return done(error);
       } finally {
@@ -91,46 +83,44 @@ passport.use(
         return done(null, false);
       }
       const connection = await pool.getConnection(async (conn) => conn);
+      const user = {
+        provider: profile.provider,
+        accessToken,
+      };
 
       try {
-        const [[userRecord]] = await connection.query(
-          "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
-          [profile.id, profile.provider]
+        const [[record]] = await connection.query(
+          `SELECT * FROM users 
+                WHERE sns_id=? 
+                AND sns_auth_api_id=?`,
+          [profile.id, SNS_AUTH_API_ID[profile.provider]]
         );
-        if (userRecord) {
-          done(null, {
-            provider: profile.provider,
-            id: profile.id,
-            recordId: userRecord.id,
-            isSuperUser: userRecord.is_superuser,
-          });
+
+        if (record) {
+          user.id = record.id;
         } else {
           await connection.query(
-            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url, gender, age_range, phone_number) VALUES (?,?,?,?,?,?,?,?);",
+            `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url, gender, age_range, phone_number) 
+                VALUES (?,?,?,?,?,?,?,?,?)`,
             [
-              2,
+              ROLE_ID.member,
+              SNS_AUTH_API_ID.naver,
               profile.id,
               profile.name,
               profile.email,
               profile.profileImage,
-              profile.gender === "M"
-                ? 1
-                : profile.gender === "F"
-                ? 2
-                : profile.gender === undefined && null,
+              GENDER_ID[profile.gender],
               profile.age,
               profile.mobile,
             ]
           );
+
+          const [[{ lastInsertId }]] = await connection.query(
+            `SELECT LAST_INSERT_ID() AS lastInsertId`
+          );
+          user.id = lastInsertId;
         }
-        const [[{ lastInsertId }]] = await connection.query(
-          "SELECT LAST_INSERT_ID() AS lastInsertId;"
-        );
-        return done(null, {
-          provider: profile.provider,
-          id: profile.id,
-          recordId: lastInsertId,
-        });
+        return done(null, user);
       } catch (error) {
         return done(error);
       } finally {
@@ -150,39 +140,41 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       const connection = await pool.getConnection(async (conn) => conn);
+      const user = {
+        provider: profile.provider,
+        accessToken,
+      };
 
       try {
-        const [[userRecord]] = await connection.query(
-          "SELECT * FROM users WHERE sns_id = ? AND sns_api_id IN (SELECT id FROM sns_api WHERE name = ?);",
-          [profile.id, profile.provider]
+        const [[record]] = await connection.query(
+          `SELECT * FROM users 
+                WHERE sns_id=? 
+                AND sns_auth_api_id=?`,
+          [profile.id, SNS_AUTH_API_ID[profile.provider]]
         );
-        if (userRecord) {
-          done(null, {
-            provider: profile.provider,
-            id: profile.id,
-            recordId: userRecord.id,
-            isSuperUser: userRecord.is_superuser,
-          });
+
+        if (record) {
+          user.id = record.id;
         } else {
           await connection.query(
-            "INSERT INTO users (sns_api_id, sns_id, name, email, image_url) VALUES (?,?,?,?,?);",
+            `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url) 
+                VALUES (?,?,?,?,?,?)`,
             [
-              3,
+              ROLE_ID.member,
+              SNS_AUTH_API_ID.google,
               profile.id,
               profile.displayName,
               profile._json.email,
               profile._json.picture,
             ]
           );
+
+          const [[{ lastInsertId }]] = await connection.query(
+            `SELECT LAST_INSERT_ID() AS lastInsertId`
+          );
+          user.id = lastInsertId;
         }
-        const [[{ lastInsertId }]] = await connection.query(
-          "SELECT LAST_INSERT_ID() AS lastInsertId;"
-        );
-        return done(null, {
-          provider: profile.provider,
-          id: profile.id,
-          recordId: lastInsertId,
-        });
+        return done(null, user);
       } catch (error) {
         return done(error);
       } finally {
@@ -192,49 +184,44 @@ passport.use(
   )
 );
 
-router.get(routes.LOGOUT, checkIsAuthenticated, logoutController);
-
-router.get(
-  routes.KAKAO,
-  checkIsNotAuthenticated,
-  passport.authenticate("kakao")
-);
+router.get(routes.KAKAO, passport.authenticate("kakao", { session: false }));
 
 router.get(
   routes.KAKAO_CALLBACK,
-  passport.authenticate("kakao"),
-  kakaoCallbackController
+  passport.authenticate("kakao", { session: false }),
+  handleCallback
 );
 
-router.get(
-  routes.NAVER,
-  checkIsNotAuthenticated,
-  passport.authenticate("naver")
-);
+router.get(routes.NAVER, passport.authenticate("naver", { session: false }));
 
 router.get(
   routes.NAVER_FAIL,
-  passport.authenticate("naver", { authType: "reprompt" })
+  passport.authenticate("naver", { authType: "reprompt", session: false })
 );
 
 router.get(
   routes.NAVER_CALLBACK,
   passport.authenticate("naver", {
     failureRedirect: routes.AUTH + routes.NAVER_FAIL,
+    session: false,
   }),
-  naverCallbackController
+  handleCallback
 );
 
 router.get(
   routes.GOOGLE,
-  checkIsNotAuthenticated,
-  passport.authenticate("google", { scope: ["profile", "email"] })
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    accessType: "offline",
+    prompt: "consent",
+    session: false,
+  })
 );
 
 router.get(
   routes.GOOGLE_CALLBACK,
-  passport.authenticate("google"),
-  googleCallbackController
+  passport.authenticate("google", { session: false }),
+  handleCallback
 );
 
 export default router;
