@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 import routes from "../routes";
 import pool from "../db";
 import { handleCallback } from "../controllers/auth";
-import { SNS_AUTH_API_ID, role, gender } from "../utils/user";
+import { SNS_AUTH_API_ID, ROLE_ID, GENDER_ID } from "../utils/user";
 
 dotenv.config();
 
@@ -44,13 +44,13 @@ passport.use(
             `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url, gender, age_range) 
                 VALUES (?,?,?,?,?,?,?,?)`,
             [
-              role.MEMBER_ID,
+              ROLE_ID.member,
               SNS_AUTH_API_ID.kakao,
               profile.id,
               profile.username,
               profile._json.kakao_account.email,
               profile._json.properties.profile_image,
-              gender[profile._json.kakao_account.gender],
+              GENDER_ID[profile._json.kakao_account.gender],
               profile._json.kakao_account.age_range,
             ]
           );
@@ -103,13 +103,13 @@ passport.use(
             `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url, gender, age_range, phone_number) 
                 VALUES (?,?,?,?,?,?,?,?,?)`,
             [
-              role.MEMBER_ID,
+              ROLE_ID.member,
               SNS_AUTH_API_ID.naver,
               profile.id,
               profile.name,
               profile.email,
               profile.profileImage,
-              gender[profile.gender],
+              GENDER_ID[profile.gender],
               profile.age,
               profile.mobile,
             ]
@@ -160,7 +160,7 @@ passport.use(
             `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url) 
                 VALUES (?,?,?,?,?,?)`,
             [
-              role.MEMBER_ID,
+              ROLE_ID.member,
               SNS_AUTH_API_ID.google,
               profile.id,
               profile.displayName,
