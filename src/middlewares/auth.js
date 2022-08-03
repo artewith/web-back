@@ -31,6 +31,7 @@ const validate = async (req, res, next) => {
         return res.status(401).json({ msg: "no provider" });
     }
 
+    req.user = payload;
     next();
   } catch (error) {
     if (error instanceof JsonWebTokenError) {

@@ -4,9 +4,6 @@
 # non-essential
 blahblah.md
 *.sql
-puttingData2.js
-puttingData1.js
-puttingData3.js
-puttingData4.js
+/dummy_data
 practice.js
 tags

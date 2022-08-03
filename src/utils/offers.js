@@ -10,4 +10,9 @@ const constants = {
   DEFAULT_RECOMMEND_LIMIT: 6,
 };
 
-export { constants };
+const functions = {
+  convertParamsToArray: (param) =>
+    param && !Array.isArray(param) ? [param] : param,
+};
+
+export { constants, functions };
