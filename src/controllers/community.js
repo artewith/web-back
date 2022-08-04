@@ -4,11 +4,21 @@ import pool from "../db";
 import myRaw from "../utils/myRaw";
 import { constants } from "../utils/community";
 
+// list posts
 const listPosts = async (req, res) => {
-  const { categoryId, searchTerm, limit, page, popularLimit, popularOffset } =
-    req.query;
+  const {
+    categoryId,
+    searchTerm,
+    limit,
+    page,
+    popularLimit,
+    popularOffset,
+    orderBy,
+  } = req.query;
 
-  if (![1, 2, 3, 4, 5].includes(Number(categoryId))) {
+  // !: 상수화 필요
+  const categoryIdRange = [1, 2, 3, 4, 5];
+  if (!categoryIdRange.includes(Number(categoryId))) {
     return res.status(403).json({ message: "CATEGORY_ID OUT OF RANGE" });
   }
 
@@ -24,34 +34,17 @@ const listPosts = async (req, res) => {
   date.setDate(date.getDate() - 7);
   const dateAWeekAgo = date.toISOString().split(".")[0];
 
-  const commonSql = mysql.format(
-    `SELECT P.id, P.community_category_id, P.title, P.view_count, P.created_at, U.name AS user_name, U.id AS user_id, U.image_url AS user_image_url
-        FROM community_posts AS P
-        JOIN users AS U ON P.user_id=U.id
-        WHERE 1=1 ?
-        ORDER BY ? created_at DESC
-        ?
-  `,
-    [
-      myRaw.where.communityCategoryId(categoryId),
-      myRaw.orderBy.postTitleLike(searchTerm),
-      myRaw.base.limitOffset(LIMIT, OFFSET),
-    ]
-  );
-  const popularSql = mysql.format(
-    `SELECT P.id, P.community_category_id, P.title, P.view_count, P.created_at, U.name AS user_name, U.id AS user_id, U.image_url AS user_image_url
-        FROM community_posts AS P
-        JOIN users AS U ON P.user_id=U.id
-        WHERE 1=1 ? ?
-        ORDER BY view_count DESC, created_at DESC
-        ?
-  `,
-    [
-      myRaw.where.communityCategoryId(categoryId),
-      myRaw.where.postCreatedSince(dateAWeekAgo),
-      myRaw.base.limitOffset(POPULAR_LIMIT, POPULAR_OFFSET),
-    ]
-  );
+  const commonSql = mysql.format(myRaw.select.commonCommunityPosts, [
+    myRaw.where.communityCategoryId(categoryId),
+    myRaw.where.postTitleLike(searchTerm),
+    myRaw.base.justRaw(orderBy),
+    myRaw.base.limitOffset(LIMIT, OFFSET),
+  ]);
+  const popularSql = mysql.format(myRaw.select.popularCommunityPosts, [
+    myRaw.where.communityCategoryId(categoryId),
+    myRaw.where.postCreatedSince(dateAWeekAgo),
+    myRaw.base.limitOffset(POPULAR_LIMIT, POPULAR_OFFSET),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
@@ -65,28 +58,16 @@ const listPosts = async (req, res) => {
   }
 };
 
+// detail post
 const detailPost = async (req, res) => {
   const { postId } = req.params;
 
-  if (!Number.isInteger(Number(postId))) {
-    return res.status(403).json({ message: "INVALID POST_ID" });
-  }
-
-  const postSql = mysql.format(
-    `SELECT P.*, U.id AS user_id, U.name AS user_name, U.image_url AS user_image_url
-        FROM community_posts AS P
-        JOIN users AS U ON P.user_id=U.id
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postId(postId)]
-  );
-  const updateViewCountSql = mysql.format(
-    `UPDATE community_posts AS P
-        SET view_count=view_count+1
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postId(postId)]
-  );
+  const postSql = mysql.format(myRaw.select.communityPost, [
+    myRaw.where.postId(postId),
+  ]);
+  const updateViewCountSql = mysql.format(myRaw.update.communityPostViewCount, [
+    myRaw.where.postId(postId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
@@ -103,33 +84,31 @@ const detailPost = async (req, res) => {
   }
 };
 
+// create post
 const createPost = async (req, res) => {
-  const { recordId } = req.user;
   const { categoryId } = req.query;
   const { title, content } = req.body;
+  const essential = [title, content];
 
   if (![1, 2, 3, 4, 5].includes(Number(categoryId))) {
     return res.status(403).json({ message: "CATEGORY_ID OUT OF RANGE" });
   }
-  if (!title || !content) {
+  if (essential.includes(undefined)) {
     return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
   const jsonContent = JSON.stringify(content);
-  const insertSql = mysql.format(
-    `INSERT INTO community_posts(user_id, community_category_id, title, content_quill)
-        VALUES(?,?,?,?)
-    `,
-    [recordId, categoryId, title, jsonContent]
-  );
+  const insertSql = mysql.format(myRaw.insert.communityPost, [
+    req.user.id,
+    categoryId,
+    title,
+    jsonContent,
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
-    await connection.query(insertSql);
-    const [[{ lastInsertId }]] = await connection.query(
-      `SELECT LAST_INSERT_ID() AS lastInsertId`
-    );
-    return res.status(201).json({ lastInsertId });
+    const [{ insertId }] = await connection.query(insertSql);
+    return res.status(201).json({ insertId });
   } catch (error) {
     return res.status(403).json({ message: error.message });
   } finally {
@@ -137,32 +116,25 @@ const createPost = async (req, res) => {
   }
 };
 
+// update post
 const updatePost = async (req, res) => {
-  const { recordId } = req.user;
   const { postId } = req.params;
   const { title, content } = req.body;
+  const essential = [title, content];
 
-  if (!Number.isInteger(Number(postId))) {
-    return res.status(403).json({ message: "INVALID POST_ID" });
-  }
-  if (!title || !content) {
+  if (essential.includes(undefined)) {
     return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
   const jsonContent = JSON.stringify(content);
-  const checkExSql = mysql.format(
-    `SELECT id, user_id FROM community_posts AS P
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postId(postId)]
-  );
-  const updateSql = mysql.format(
-    `UPDATE community_posts AS P
-        SET title=?, content_quill=?
-        WHERE 1=1 ?
-    `,
-    [title, jsonContent, myRaw.where.postId(postId)]
-  );
+  const checkExSql = mysql.format(myRaw.select.exCommunityPost, [
+    myRaw.where.postId(postId),
+  ]);
+  const updateSql = mysql.format(myRaw.update.communityPost, [
+    title,
+    jsonContent,
+    myRaw.where.postId(postId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
@@ -170,7 +142,7 @@ const updatePost = async (req, res) => {
 
     if (!exPost) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exPost.user_id !== recordId) {
+    } else if (exPost.user_id !== req.user.id) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
@@ -183,39 +155,30 @@ const updatePost = async (req, res) => {
   }
 };
 
+// delete post
 const deletePost = async (req, res) => {
-  const { recordId } = req.user;
   const { postId } = req.params;
 
   if (!Number.isInteger(Number(postId))) {
     return res.status(403).json({ message: "INVALID POST_ID" });
   }
 
-  const checkExSql = mysql.format(
-    `SELECT id, user_id FROM community_posts AS P
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postId(postId)]
-  );
-  const deleteCommentsSql = mysql.format(
-    `DELETE FROM community_comments
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postIdRefer(postId)]
-  );
-  const deletePostSql = mysql.format(
-    `DELETE FROM community_posts AS P
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postId(postId)]
-  );
+  const checkExSql = mysql.format(myRaw.select.exCommunityPost, [
+    myRaw.where.postId(postId),
+  ]);
+  const deleteCommentsSql = mysql.format(myRaw.delete.communityComments, [
+    myRaw.where.postIdRefer(postId),
+  ]);
+  const deletePostSql = mysql.format(myRaw.delete.communityPost, [
+    myRaw.where.postId(postId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
     const [[exPost]] = await connection.query(checkExSql);
     if (!exPost) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exPost.user_id !== recordId) {
+    } else if (exPost.user_id !== req.user.id) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
@@ -229,6 +192,7 @@ const deletePost = async (req, res) => {
   }
 };
 
+// list comments
 const listComments = async (req, res) => {
   const { postId } = req.params;
 
@@ -236,21 +200,12 @@ const listComments = async (req, res) => {
     return res.status(403).json({ message: "INVALID POST_ID" });
   }
 
-  const checkExSql = mysql.format(
-    `SELECT id, user_id FROM community_posts AS P
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postId(postId)]
-  );
-  const commentsSql = mysql.format(
-    `SELECT C.*, U.id AS user_id, U.name AS user_name, U.image_url AS user_image_url 
-        FROM community_comments AS C
-        JOIN users AS U ON C.user_id=U.id
-        WHERE 1=1 ?
-        ORDER BY created_at DESC
-    `,
-    [myRaw.where.postIdRefer(postId)]
-  );
+  const checkExSql = mysql.format(myRaw.select.exCommunityPost, [
+    myRaw.where.postId(postId),
+  ]);
+  const commentsSql = mysql.format(myRaw.select.communityComments, [
+    myRaw.where.postIdRefer(postId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
@@ -266,30 +221,24 @@ const listComments = async (req, res) => {
     connection.release();
   }
 };
+
+// create comment
 const createComment = async (req, res) => {
-  const { recordId } = req.user;
   const { postId } = req.params;
   const { content } = req.body;
 
-  if (!Number.isInteger(Number(postId))) {
-    return res.status(403).json({ message: "INVALID POST_ID" });
-  }
-  if (!content) {
+  if (content === undefined) {
     return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
-  const checkExSql = mysql.format(
-    `SELECT id, user_id FROM community_posts AS P
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.postId(postId)]
-  );
-  const insertCommentSql = mysql.format(
-    `INSERT INTO community_comments(user_id, community_post_id, content)
-        VALUES (?,?,?)
-    `,
-    [recordId, postId, content]
-  );
+  const checkExSql = mysql.format(myRaw.select.exCommunityPost, [
+    myRaw.where.postId(postId),
+  ]);
+  const insertCommentSql = mysql.format(myRaw.insert.communityComments, [
+    req.user.id,
+    postId,
+    content,
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
@@ -297,49 +246,38 @@ const createComment = async (req, res) => {
     if (!exPost) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
     }
-    await connection.query(insertCommentSql);
-    const [[{ lastInsertId }]] = await connection.query(
-      `SELECT LAST_INSERT_ID() AS lastInsertId`
-    );
-    return res.status(201).json({ lastInsertId });
+    const [{ insertId }] = await connection.query(insertCommentSql);
+    return res.status(201).json({ insertId });
   } catch (error) {
     return res.status(403).json({ message: error.message });
   } finally {
     connection.release();
   }
 };
+
+// update comment
 const updateComment = async (req, res) => {
-  const { recordId } = req.user;
   const { commentId } = req.params;
   const { content } = req.body;
 
-  if (!Number.isInteger(Number(commentId))) {
-    return res.status(403).json({ message: "INVALID COMMENT_ID" });
-  }
-  if (!content) {
+  if (content === undefined) {
     return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
-  const checkExSql = mysql.format(
-    `SELECT id, user_id FROM community_comments AS C
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.commentId(commentId)]
-  );
-  const updateSql = mysql.format(
-    `UPDATE community_comments AS C
-        SET content=?
-        WHERE 1=1 ?
-    `,
-    [content, myRaw.where.commentId(commentId)]
-  );
+  const checkExSql = mysql.format(myRaw.select.exCommunityComment, [
+    myRaw.where.commentId(commentId),
+  ]);
+  const updateSql = mysql.format(myRaw.update.communityComment, [
+    content,
+    myRaw.where.commentId(commentId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
     const [[exComment]] = await connection.query(checkExSql);
     if (!exComment) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exComment.user_id !== recordId) {
+    } else if (exComment.user_id !== req.user.id) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
@@ -351,33 +289,24 @@ const updateComment = async (req, res) => {
     connection.release();
   }
 };
+
+// delete comment
 const deleteComment = async (req, res) => {
-  const { recordId } = req.user;
   const { commentId } = req.params;
 
-  if (!Number.isInteger(Number(commentId))) {
-    return res.status(403).json({ message: "INVALID COMMENT_ID" });
-  }
-
-  const checkExSql = mysql.format(
-    `SELECT id, user_id FROM community_comments AS C
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.commentId(commentId)]
-  );
-  const deleteSql = mysql.format(
-    `DELETE FROM community_comments AS C
-        WHERE 1=1 ?
-    `,
-    [myRaw.where.commentId(commentId)]
-  );
+  const checkExSql = mysql.format(myRaw.select.exCommunityComment, [
+    myRaw.where.commentId(commentId),
+  ]);
+  const deleteSql = mysql.format(myRaw.delete.communityComment, [
+    myRaw.where.commentId(commentId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
     const [[exComment]] = await connection.query(checkExSql);
     if (!exComment) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exComment.user_id !== recordId) {
+    } else if (exComment.user_id !== req.user.id) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
@@ -390,6 +319,16 @@ const deleteComment = async (req, res) => {
   }
 };
 
+// !: image API
+const putCommunityContentImage = async (req, res) => {
+  if (!req.file) {
+    return res.status(403).json({ message: "OMISSION IN FILE" });
+  }
+  const { location: imageUrl } = req.file;
+
+  return res.status(200).json({ imageUrl });
+};
+
 export {
   listPosts,
   detailPost,
@@ -400,4 +339,5 @@ export {
   createComment,
   updateComment,
   deleteComment,
+  putCommunityContentImage,
 };

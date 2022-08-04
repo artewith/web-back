@@ -215,6 +215,34 @@ const myRaw = {
         WHERE 1=1 ?`,
     // lastInsertId
     lastInsertId: `SELECT LAST_INSERT_ID() AS lastInsertId`,
+
+    // list community posts
+    commonCommunityPosts: `SELECT P.id, P.community_category_id, P.title, P.view_count, P.created_at, U.name AS user_name, U.id AS user_id, U.image_url AS user_image_url
+        FROM community_posts AS P
+        JOIN users AS U ON P.user_id=U.id
+        WHERE 1=1 ? ?
+        ORDER BY ?
+        ?`,
+    popularCommunityPosts: `SELECT P.id, P.community_category_id, P.title, P.view_count, P.created_at, U.name AS user_name, U.id AS user_id, U.image_url AS user_image_url
+        FROM community_posts AS P
+        JOIN users AS U ON P.user_id=U.id
+        WHERE 1=1 ? ?
+        ORDER BY view_count DESC, created_at DESC
+        ?`,
+
+    communityPost: `SELECT P.*, U.id AS user_id, U.name AS user_name, U.image_url AS user_image_url
+        FROM community_posts AS P
+        JOIN users AS U ON P.user_id=U.id
+        WHERE 1=1 ?`,
+    exCommunityPost: `SELECT id, user_id FROM community_posts AS P
+        WHERE 1=1 ?`,
+    communityComments: `SELECT C.*, U.id AS user_id, U.name AS user_name, U.image_url AS user_image_url 
+              FROM community_comments AS C
+              JOIN users AS U ON C.user_id=U.id
+              WHERE 1=1 ?
+              ORDER BY created_at DESC`,
+    exCommunityComment: `SELECT id, user_id FROM community_comments AS C
+        WHERE 1=1 ?`,
   },
   insert: {
     // create offer
@@ -240,6 +268,11 @@ const myRaw = {
             VALUES(?,?,?,?,?)`,
     facilities: `INSERT INTO practice_houses_facility(practice_house_id, facility_id) 
             VALUES(?,?)`,
+    // community_posts
+    communityPost: `INSERT INTO community_posts(user_id, community_category_id, title, content_quill)
+        VALUES(?,?,?,?)`,
+    communityComments: `INSERT INTO community_comments(user_id, community_post_id, content)
+        VALUES (?,?,?)`,
   },
   update: {
     // increase offer view count
@@ -291,9 +324,19 @@ const myRaw = {
     rooms: `UPDATE rooms
         SET name=?, instrument=?, hourly_price=?, image_url=?
         WHERE 1=1 ?`,
+    // update community post
+    communityPostViewCount: `UPDATE community_posts AS P
+        SET view_count=view_count+1
+        WHERE 1=1 ?`,
+    communityPost: `UPDATE community_posts AS P
+        SET title=?, content_quill=?
+        WHERE 1=1 ?`,
+    communityComment: `UPDATE community_comments AS C
+        SET content=?
+        WHERE 1=1 ?`,
   },
   delete: {
-    // delete
+    // offers
     l_educations: `DELETE FROM l_educations 
                   WHERE 1=1 ?`,
     l_lectures: `DELETE FROM l_lectures 
@@ -310,14 +353,21 @@ const myRaw = {
         WHERE 1=1 ?`,
     accompanistRecruit: `DELETE FROM accompanist_recruits
         WHERE 1=1 ?`,
+    // practice_houses
     practiceHouse: `DELETE FROM practice_houses
         WHERE 1=1 ?`,
-
     rooms: `DELETE FROM rooms
                 WHERE 1=1 ?`,
     facilities: `DELETE FROM practice_houses_facility
             WHERE 1=1 ? ?`,
     allFacilities: `DELETE FROM practice_houses_facility
+        WHERE 1=1 ?`,
+    // community_posts
+    communityComments: `DELETE FROM community_comments
+        WHERE 1=1 ?`,
+    communityPost: `DELETE FROM community_posts AS P
+        WHERE 1=1 ?`,
+    communityComment: `DELETE FROM community_comments AS C
         WHERE 1=1 ?`,
   },
   where: {
@@ -419,17 +469,20 @@ const myRaw = {
       mysql.raw(date ? `AND P.created_at > '${date}'` : ""),
     postId: (id) => mysql.raw(`AND P.id=${id}`),
     postIdRefer: (id) => mysql.raw(`AND community_post_id=${id}`),
+    postTitleLike: (term) =>
+      mysql.raw(term ? `AND P.title LIKE "%${term}%"` : ""),
     commentId: (id) => mysql.raw(`AND C.id=${id}`),
   },
   base: {
     limitOffset: (limit, offset) =>
       mysql.raw(`LIMIT ${limit} OFFSET ${offset}`),
+    justRaw: (param) => (param ? mysql.raw(param) : null),
   },
   orderBy: {
     hourlyPrice: (order) =>
       mysql.raw(order === undefined ? "" : `hourly_price ${order} ,`),
-    postTitleLike: (term) =>
-      mysql.raw(term ? `P.title LIKE "%${term}%" DESC, ` : ""),
+    createdAt: (order) => mysql.raw(order ? `, created_at ${order}` : ""),
+    viewCount: (order) => mysql.raw(order ? `, view_count ${order}` : ""),
   },
 };
 

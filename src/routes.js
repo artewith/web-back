@@ -35,9 +35,9 @@ const routes = {
   HOUSE_RECOMMEND: "/:houseId/recommend",
   HOUSE_FULFILL: "/:houseId/fulfill",
   COMMUNITY: "/community",
-  POST_ID: "/:postId",
+  POST: "/:postId",
   POST_COMMENTS: "/:postId/comments",
-  POST_COMMENT_ID: "/:postId/comments/:commentId",
+  POST_COMMENT: "/:postId/comments/:commentId",
   ADVERTISEMENTS: "/advertisements",
   RANDOM: "/random",
 };
