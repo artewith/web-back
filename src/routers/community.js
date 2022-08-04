@@ -12,19 +12,28 @@ import {
   createComment,
   updateComment,
   deleteComment,
+  putCommunityContentImage,
 } from "../controllers/community";
+import { initializeUpload } from "../utils/s3multer";
 
+const { ROOT, POST, POST_COMMENTS, POST_COMMENT, IMAGE } = routes;
 const router = express.Router();
+const upload = initializeUpload("community");
 
-router.get(routes.ROOT, listPosts);
-router.get(routes.POST_ID, validate, detailPost);
-router.post(routes.ROOT, validate, createPost);
-router.patch(routes.POST_ID, validate, updatePost);
-router.delete(routes.POST_ID, validate, deletePost);
+// community posts
+router.get(ROOT, listPosts);
+router.get(POST, validate, detailPost);
+router.post(ROOT, validate, createPost);
+router.patch(POST, validate, updatePost);
+router.delete(POST, validate, deletePost);
 
-router.get(routes.POST_COMMENTS, validate, listComments);
-router.post(routes.POST_COMMENTS, validate, createComment);
-router.patch(routes.POST_COMMENT_ID, validate, updateComment);
-router.delete(routes.POST_COMMENT_ID, validate, deleteComment);
+// community comments
+router.get(POST_COMMENTS, validate, listComments);
+router.post(POST_COMMENTS, validate, createComment);
+router.patch(POST_COMMENT, validate, updateComment);
+router.delete(POST_COMMENT, validate, deleteComment);
+
+// image
+router.post(IMAGE, validate, upload.single("single"), putCommunityContentImage);
 
 export default router;
