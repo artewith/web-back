@@ -167,6 +167,52 @@ const myRaw = {
         WHERE 1=1 ?`,
     exAccompanistRecruit: `SELECT id, user_id, image_url FROM accompanist_recruits 
         WHERE 1=1 ?`,
+
+    // detail practice houses
+    practiceHouse: `SELECT O.*, D.name AS district_name, C.id AS city_id, C.name AS city_name, U.name AS user_name
+        FROM practice_houses AS O 
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN city AS C ON D.city_id=C.id
+        JOIN users AS U ON O.user_id=U.id
+        WHERE 1=1 ?`,
+    rooms: `SELECT * FROM rooms
+        WHERE 1=1 ?`,
+    facilities: `SELECT * FROM facility AS F
+        WHERE 1=1 ?`,
+    // list practice houses
+    commonPracticeHouses: `SELECT O.*, D.name AS district_name, C.id AS city_id, C.name AS city_name, U.name AS user_name
+        FROM practice_houses AS O 
+        LEFT JOIN practice_houses_facility AS PF ON PF.practice_house_id=O.id
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN city AS C ON D.city_id=C.id
+        JOIN users AS U ON O.user_id=U.id
+        WHERE 1=1 ? ? ?
+        GROUP BY O.id
+        ORDER BY selected_until DESC, ? updated_at DESC 
+        ?`,
+    selectedPracticeHouses: `SELECT O.*, D.name AS district_name, C.id AS city_id, C.name AS city_name, U.name AS user_name
+        FROM practice_houses AS O
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN city AS C ON D.city_id=C.id
+        JOIN users AS U ON O.user_id=U.id
+        WHERE 1=1 ?
+        ORDER BY updated_at DESC
+        ?`,
+    // recommend practice houses
+    recommendPracticeHouses: `SELECT O.*, D.name AS district_name, C.id AS city_id, C.name AS city_name, U.name AS user_name
+        FROM practice_houses AS O
+        JOIN district AS D ON O.district_id=D.id 
+        JOIN city AS C ON D.city_id=C.id
+        JOIN users AS U ON O.user_id=U.id
+        WHERE 1=1 ? ?
+        ORDER BY selected_until DESC, updated_at DESC 
+        ?`,
+    // check practice house exists
+    exPracticeHouse: `SELECT id, user_id, image_url FROM practice_houses 
+        WHERE 1=1 ? 
+        LIMIT 1`,
+    exFacilities: `SELECT facility_id FROM practice_houses_facility 
+        WHERE 1=1 ?`,
     // lastInsertId
     lastInsertId: `SELECT LAST_INSERT_ID() AS lastInsertId`,
   },
@@ -187,6 +233,13 @@ const myRaw = {
         VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,? )`,
     accompanistRecruit: `INSERT INTO accompanist_recruits (user_id, district_id, major_id, title, description, hourly_wage,  is_negotiable, contact_A, contact_B, contact_C, contact_D, image_url) 
         VALUES ( ?,?,?,?,?,?,?,?,?,?,?,? )`,
+    // create practice houses
+    practiceHouse: `INSERT INTO practice_houses ( user_id, district_id, title, hourly_price,  description, direction, contact_A, contact_B, contact_C, contact_D, image_url ) 
+        VALUES ( ?,?,?,?,?,?,?,?,?,?,? )`,
+    rooms: `INSERT INTO rooms (practice_house_id, name, instrument, hourly_price, image_url )
+            VALUES(?,?,?,?,?)`,
+    facilities: `INSERT INTO practice_houses_facility(practice_house_id, facility_id) 
+            VALUES(?,?)`,
   },
   update: {
     // increase offer view count
@@ -227,6 +280,17 @@ const myRaw = {
     accompanistRecruit: `UPDATE accompanist_recruits
         SET district_id=?, major_id=?, title=?, description=?, hourly_wage=?, is_negotiable=?, contact_A=?,contact_B=?, contact_C=?, contact_D=?, image_url=?
         WHERE 1=1 ?`,
+    // increase
+    practiceHouseViewCount: `UPDATE practice_houses 
+        SET view_count=view_count+1 
+        WHERE 1=1 ?`,
+    // update practice_houses
+    practiceHouse: `UPDATE practice_houses
+        SET district_id=?, title=?, description=?, contact_A=?, contact_B=?, contact_C=?, contact_D=?, hourly_price=?, direction=?, image_url=?
+        WHERE 1=1 ?`,
+    rooms: `UPDATE rooms
+        SET name=?, instrument=?, hourly_price=?, image_url=?
+        WHERE 1=1 ?`,
   },
   delete: {
     // delete
@@ -245,6 +309,15 @@ const myRaw = {
     tutorRecruit: `DELETE FROM tutor_recruits
         WHERE 1=1 ?`,
     accompanistRecruit: `DELETE FROM accompanist_recruits
+        WHERE 1=1 ?`,
+    practiceHouse: `DELETE FROM practice_houses
+        WHERE 1=1 ?`,
+
+    rooms: `DELETE FROM rooms
+                WHERE 1=1 ?`,
+    facilities: `DELETE FROM practice_houses_facility
+            WHERE 1=1 ? ?`,
+    allFacilities: `DELETE FROM practice_houses_facility
         WHERE 1=1 ?`,
   },
   where: {
@@ -330,6 +403,7 @@ const myRaw = {
                     )
                 ))`
       ),
+    facilityId: (id) => mysql.raw(`AND facility_id = ${id}`),
     facilityIds: (ids) =>
       mysql.raw(ids ? `AND PF.facility_id IN (${[ids]})` : ""),
     facilitiesByHouseId: (id) =>
@@ -339,6 +413,7 @@ const myRaw = {
           WHERE practice_house_id = ${id}
       )`
       ),
+    practiceHouseIdRefer: (id) => mysql.raw(`AND practice_house_id=${id}`),
     communityCategoryId: (id) => mysql.raw(`AND P.community_category_id=${id}`),
     postCreatedSince: (date) =>
       mysql.raw(date ? `AND P.created_at > '${date}'` : ""),
