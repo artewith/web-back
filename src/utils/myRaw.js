@@ -2,6 +2,12 @@ import mysql from "mysql2/promise";
 
 const myRaw = {
   select: {
+    // check if user exists
+    exUserBySNS: `SELECT * FROM users 
+                WHERE sns_id=? 
+                AND sns_auth_api_id=?`,
+    exUser: `SELECT * FROM users 
+                WHERE id=?`,
     // detail offer
     lessonResume: `SELECT O.*, U.name AS user_name, U.image_url AS user_image_url, M.name AS major_name, D.name AS district, C.name AS city, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM lesson_resumes AS O 
@@ -245,6 +251,14 @@ const myRaw = {
         WHERE 1=1 ?`,
   },
   insert: {
+    // user
+    kakaoUser: `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url, gender, age_range) 
+                VALUES (?,?,?,?,?,?,?,?)`,
+    naverUser: `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url, gender, age_range, phone_number) 
+                VALUES (?,?,?,?,?,?,?,?,?)`,
+    googleUser: `INSERT INTO users (role_id, sns_auth_api_id, sns_id, name, email, image_url) 
+                VALUES (?,?,?,?,?,?)`,
+
     // create offer
     lessoneResume: `INSERT INTO lesson_resumes ( user_id, district_id, major_id, title,  description, contact_A, contact_B, contact_C, contact_D, hourly_wage, is_negotiable, work_experience, gender, image_url ) VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?,? )`,
     l_lectures: `INSERT INTO l_lectures(resume_id, institution, is_representative) 
