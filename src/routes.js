@@ -2,6 +2,7 @@ const routes = {
   ROOT: "/",
   FILTERS: "/filters",
   AUTH: "/auth",
+  VALIDATE: "/validate",
   USERS: "/users",
   REGISTER: "/register",
   IMAGE: "/image",

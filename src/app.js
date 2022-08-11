@@ -2,7 +2,6 @@ import express from "express";
 import morgan from "morgan";
 import helmet from "helmet";
 import cors from "cors";
-import passport from "passport";
 import compression from "compression";
 import dotenv from "dotenv";
 
@@ -26,7 +25,6 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
-app.use(passport.initialize());
 
 // routers
 app.use(routes.FILTERS, filterRouter);
