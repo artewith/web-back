@@ -99,7 +99,7 @@ const createPost = async (req, res) => {
 
   const jsonContent = JSON.stringify(content);
   const insertSql = mysql.format(myRaw.insert.communityPost, [
-    req.user.id,
+    req.user.userId,
     categoryId,
     title,
     jsonContent,
@@ -142,7 +142,7 @@ const updatePost = async (req, res) => {
 
     if (!exPost) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exPost.user_id !== req.user.id) {
+    } else if (exPost.user_id !== req.user.userId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
@@ -178,7 +178,7 @@ const deletePost = async (req, res) => {
     const [[exPost]] = await connection.query(checkExSql);
     if (!exPost) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exPost.user_id !== req.user.id) {
+    } else if (exPost.user_id !== req.user.userId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
@@ -235,7 +235,7 @@ const createComment = async (req, res) => {
     myRaw.where.postId(postId),
   ]);
   const insertCommentSql = mysql.format(myRaw.insert.communityComments, [
-    req.user.id,
+    req.user.userId,
     postId,
     content,
   ]);
@@ -277,7 +277,7 @@ const updateComment = async (req, res) => {
     const [[exComment]] = await connection.query(checkExSql);
     if (!exComment) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exComment.user_id !== req.user.id) {
+    } else if (exComment.user_id !== req.user.userId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
@@ -306,7 +306,7 @@ const deleteComment = async (req, res) => {
     const [[exComment]] = await connection.query(checkExSql);
     if (!exComment) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exComment.user_id !== req.user.id) {
+    } else if (exComment.user_id !== req.user.userId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 

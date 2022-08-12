@@ -492,7 +492,7 @@ const createLessonResume = async (req, res) => {
   }
 
   const insertSql = mysql.format(myRaw.insert.lessoneResume, [
-    req.user.id,
+    req.user.userId,
     districtId,
     majorId,
     title,
@@ -508,7 +508,7 @@ const createLessonResume = async (req, res) => {
     imageUrl,
   ]);
   const checkExSql = mysql.format(myRaw.select.exLessonResume, [
-    myRaw.where.userId(req.user.id),
+    myRaw.where.userId(req.user.userId),
   ]);
 
   const connection = await pool.getConnection(async (conn) => conn);
@@ -591,7 +591,7 @@ const createAccompanistResume = async (req, res) => {
   }
 
   const insertSql = mysql.format(myRaw.insert.accompanistResume, [
-    req.user.id,
+    req.user.userId,
     districtId,
     majorId,
     title,
@@ -606,7 +606,7 @@ const createAccompanistResume = async (req, res) => {
     imageUrl,
   ]);
   const checkExSql = mysql.format(myRaw.select.exAccompanistResume, [
-    myRaw.where.userId(req.user.id),
+    myRaw.where.userId(req.user.userId),
   ]);
 
   const connection = await pool.getConnection(async (conn) => conn);
@@ -676,7 +676,7 @@ const createTutorRecruit = async (req, res) => {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
 
   const insertSql = mysql.format(myRaw.insert.tutorRecruit, [
-    req.user.id,
+    req.user.userId,
     districtId,
     title,
     description,
@@ -693,7 +693,7 @@ const createTutorRecruit = async (req, res) => {
     imageUrl,
   ]);
   const checkExSql = mysql.format(myRaw.select.exTutorRecruit, [
-    myRaw.where.userId(req.user.id),
+    myRaw.where.userId(req.user.userId),
   ]);
 
   const connection = await pool.getConnection(async (conn) => conn);
@@ -740,7 +740,7 @@ const createAccompanistRecruit = async (req, res) => {
     return res.status(403).json({ message: "OMISSION IN REQUEST BODY" });
 
   const insertSql = mysql.format(myRaw.insert.accompanistRecruit, [
-    req.user.id,
+    req.user.userId,
     districtId,
     majorId,
     title,
@@ -754,7 +754,7 @@ const createAccompanistRecruit = async (req, res) => {
     imageUrl,
   ]);
   const checkExSql = mysql.format(myRaw.select.exAccompanistRecruit, [
-    myRaw.where.userId(req.user.id),
+    myRaw.where.userId(req.user.userId),
   ]);
 
   const connection = await pool.getConnection(async (conn) => conn);
@@ -851,7 +851,7 @@ const updateLessonResume = async (req, res) => {
   try {
     const [[exOffer]] = await connection.query(checkExSql);
     if (!exOffer) return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
 
     await connection.query(updateSql);
@@ -1006,7 +1006,7 @@ const updateAccompanistResume = async (req, res) => {
   try {
     const [[exOffer]] = await connection.query(checkExSql);
     if (!exOffer) return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
 
     await connection.query(updateSql);
@@ -1143,7 +1143,7 @@ const updateTutorRecruit = async (req, res) => {
     const [[exOffer]] = await connection.query(checkExSql);
 
     if (!exOffer) return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
 
     await connection.query(updateSql);
@@ -1206,7 +1206,7 @@ const updateAccompanistRecruit = async (req, res) => {
     const [[exOffer]] = await connection.query(checkExSql);
     if (exOffer === undefined)
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
 
     await connection.query(updateSql);
@@ -1239,7 +1239,7 @@ const deletelessonResume = async (req, res) => {
     const [[exOffer]] = await connection.query(checkExSql);
     if (exOffer === undefined)
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
     if (exOffer.image_url) {
       const imageKey = exOffer.image_url.split(".com/")[1];
@@ -1278,7 +1278,7 @@ const deleteAccompanistResume = async (req, res) => {
     const [[exOffer]] = await connection.query(checkExSql);
     if (exOffer === undefined)
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
     if (exOffer.image_url) {
       const imageKey = exOffer.image_url.split(".com/")[1];
@@ -1311,7 +1311,7 @@ const deleteTutorRecruit = async (req, res) => {
     const [[exOffer]] = await connection.query(checkExSql);
     if (exOffer === undefined)
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
     if (exOffer.image_url) {
       const imageKey = exOffer.image_url.split(".com/")[1];
@@ -1342,7 +1342,7 @@ const deleteAccompanistRecruit = async (req, res) => {
     const [[exOffer]] = await connection.query(checkExSql);
     if (exOffer === undefined)
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    if (exOffer.user_id !== req.user.id)
+    if (exOffer.user_id !== req.user.userId)
       return res.status(403).json({ message: "INVALID USER" });
     if (exOffer.image_url) {
       const imageKey = exOffer.image_url.split(".com/")[1];
