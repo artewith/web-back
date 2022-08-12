@@ -158,10 +158,10 @@ const createHouse = async (req, res) => {
   }
 
   const checkExSql = mysql.format(myRaw.select.exPracticeHouse, [
-    myRaw.where.userId(req.user.id),
+    myRaw.where.userId(req.user.userId),
   ]);
   const insertHouseSql = mysql.format(myRaw.insert.practiceHouse, [
-    req.user.id,
+    req.user.userId,
     districtId,
     title,
     hourlyPrice,
@@ -180,7 +180,6 @@ const createHouse = async (req, res) => {
     if (exHouse) {
       return res.status(403).json({ message: "ALREADY EXISTS" });
     }
-    console.log(exHouse);
 
     const [{ insertId }] = await connection.query(insertHouseSql);
 
@@ -266,20 +265,18 @@ const updateHouse = async (req, res) => {
   const exFacilitiesSql = mysql.format(myRaw.select.exFacilities, [
     myRaw.where.practiceHouseIdRefer(houseId),
   ]);
-  console.log(exFacilitiesSql);
 
   const connection = await pool.getConnection(async (conn) => conn);
   try {
     const [[exHouse]] = await connection.query(checkExSql);
     if (!exHouse) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exHouse.user_id !== req.user.id) {
+    } else if (exHouse.user_id !== req.user.userId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
 
     // facility는 연습방과 달리 isDeleted, isNew 로직을 쓰지 않았음. 음..
     const [exFacilities] = await connection.query(exFacilitiesSql);
-    console.log(exFacilities);
     const exFacilityIds = exFacilities.map((el) => el.facility_id);
     const facilityIdsToCreate = facilityIds.filter(
       (el) => !exFacilityIds.includes(el)
@@ -379,7 +376,7 @@ const deleteHouse = async (req, res) => {
     const [[exHouse]] = await connection.query(checkExSql);
     if (!exHouse) {
       return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exHouse.user_id !== req.user.id) {
+    } else if (exHouse.user_id !== req.user.userId) {
       return res.status(403).json({ message: "INVALID USER" });
     }
     const [exRooms] = await connection.query(selectRoomsSql);
@@ -405,7 +402,6 @@ const deleteHouse = async (req, res) => {
 
     return res.status(204).end();
   } catch (error) {
-    console.trace(error);
     return res.status(403).json({ message: error.message });
   } finally {
     connection.release();
