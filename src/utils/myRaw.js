@@ -8,6 +8,13 @@ const myRaw = {
                 AND sns_auth_api_id=?`,
     exUser: `SELECT * FROM users 
                 WHERE id=?`,
+    // user
+    userProfile: `SELECT U.*, D.name AS district_name, M.name AS major_name, S.name AS sns_auth_api_name from users AS U
+        LEFT JOIN district AS D ON U.district_id=D.id
+        LEFT JOIN major AS M ON U.major_id=M.id
+        JOIN sns_auth_api AS S ON U.sns_auth_api_id=S.id
+        WHERE 1=1 ?`,
+
     // detail offer
     lessonResume: `SELECT O.*, U.name AS user_name, U.image_url AS user_image_url, M.name AS major_name, D.name AS district, C.name AS city, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
         FROM lesson_resumes AS O 
@@ -18,7 +25,7 @@ const myRaw = {
         LEFT JOIN l_educations AS E ON E.resume_id=O.id AND E.is_representative=true
         WHERE 1=1 ?`,
     l_educations: `SELECT * FROM l_educations 
-        WHERE 1=1 ?`,
+   WHERE 1=1 ?`,
     l_lectures: `SELECT * FROM l_lectures 
         WHERE 1=1 ?`,
     accompanistResume: `SELECT O.*, U.name AS user_name, U.image_url AS user_image_url, M.name AS major_name, D.name AS district, C.name AS city, E.institution AS educated_institution, E.major AS educated_major, E.degree AS educated_degree 
@@ -289,6 +296,14 @@ const myRaw = {
         VALUES (?,?,?)`,
   },
   update: {
+    // user
+    userProfile: `UPDATE users AS U
+        SET is_allowing_ads=?, name=?, email=?, phone_number=?, district_id=?, major_id=?, gender=?, school=?, description=?, image_url=?
+        WHERE 1=1 ?`,
+    initialUserProfile: `UPDATE users AS U
+        SET is_allowing_ads=?, name=?, district_id=?, major_id=?, gender=?, image_url=?
+        WHERE 1=1 ?`,
+
     // increase offer view count
     lessonResumeViewCount: `UPDATE lesson_resumes AS O 
         SET view_count=view_count+1 

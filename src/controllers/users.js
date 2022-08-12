@@ -2,30 +2,21 @@ import mysql from "mysql2/promise";
 
 import pool from "../db";
 import myRaw from "../utils/myRaw";
-import { deleteObjectByKey } from "../utils/s3multer";
 
-// !: Add paymentes logic
+// read user profile
 const detailUser = async (req, res) => {
-  const { recordId } = req.user;
+  const { userId } = req.user;
 
-  const sql = mysql.format(
-    `SELECT U.*, D.name AS district_name, J.name AS job_name, M.name AS major_name, S.name AS sns_api_name from users AS U
-        LEFT JOIN district AS D ON U.district_id=D.id
-        LEFT JOIN job AS J ON U.job_id=J.id
-        LEFT JOIN major AS M ON U.major_id=M.id
-        JOIN sns_api AS S ON U.sns_api_id=S.id
-        WHERE 1=1 ?`,
-    [myRaw.where.uId(recordId)]
-  );
+  const sql = mysql.format(myRaw.select.userProfile, [myRaw.where.uId(userId)]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
-    const [[exUser]] = await connection.query(sql);
-    if (!exUser) {
+    const [[userProfile]] = await connection.query(sql);
+    if (!userProfile) {
       res.status(403).json({ message: "RECORD NOT EXISTS" });
     }
 
-    res.status(200).json(exUser);
+    res.status(200).json({ userProfile });
   } catch (error) {
     return res.status(403).json({ message: error.message });
   } finally {
@@ -33,29 +24,27 @@ const detailUser = async (req, res) => {
   }
 };
 
-const updateUser = async (req, res) => {
-  const { recordId } = req.user;
-  const { isAllowingAds, name, districtId, jobId, majorId, gender } = req.body;
+// update user profile
+const updateInitialUserProfile = async (req, res) => {
+  const { userId } = req.user;
+  const { isAllowingAds, name, districtId, majorId, gender, imageUrl } =
+    req.body;
+  const essential = [name, isAllowingAds];
 
-  const checkExSql = mysql.format(
-    `SELECT id FROM users
-        WHERE 1=1 ?`,
-    [myRaw.where.id(recordId)]
-  );
-  const updateSql = mysql.format(
-    `UPDATE users AS U
-            SET is_allowing_ads=?, name=?, district_id=?, job_id=?, major_id=?, gender=?
-            WHERE 1=1 ?`,
-    [
-      isAllowingAds,
-      name,
-      districtId,
-      jobId,
-      majorId,
-      gender,
-      myRaw.where.uId(recordId),
-    ]
-  );
+  if (essential.includes(undefined)) {
+    return res.status(403).json({ message: "OMISSION IN BODY" });
+  }
+
+  const checkExSql = mysql.format(myRaw.select.exUser, [userId]);
+  const updateSql = mysql.format(myRaw.update.initialUserProfile, [
+    isAllowingAds,
+    name,
+    districtId,
+    majorId,
+    gender,
+    imageUrl,
+    myRaw.where.uId(userId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
@@ -73,42 +62,50 @@ const updateUser = async (req, res) => {
   }
 };
 
-const putUserImage = async (req, res) => {
-  const { recordId } = req.user;
-  if (!req.file) {
-    return res.status(403).json({ message: "OMISSION IN FILE" });
+const updateUserProfile = async (req, res) => {
+  const { userId } = req.user;
+  const {
+    isAllowingAds,
+    name,
+    email,
+    phoneNumber,
+    districtId,
+    majorId,
+    gender,
+    school,
+    description,
+    imageUrl,
+  } = req.body;
+  const essential = [name, email];
+
+  if (essential.includes(undefined)) {
+    return res.status(403).json({ message: "OMISSION IN BODY" });
   }
 
-  const { location } = req.file;
-  const checkExSql = mysql.format(
-    `SELECT id, image_url FROM users
-        WHERE 1=1 ?`,
-    [myRaw.where.id(recordId)]
-  );
-  const updateSql = mysql.format(
-    `UPDATE users
-        SET image_url=?
-        WHERE 1=1 ?`,
-    [location, myRaw.where.id(recordId)]
-  );
+  const checkExSql = mysql.format(myRaw.select.exUser, [userId]);
+  const updateSql = mysql.format(myRaw.update.userProfile, [
+    isAllowingAds,
+    name,
+    email,
+    phoneNumber,
+    districtId,
+    majorId,
+    gender,
+    school,
+    description,
+    imageUrl,
+    myRaw.where.uId(userId),
+  ]);
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
     const [[exUser]] = await connection.query(checkExSql);
     if (!exUser) {
-      return res.status(403).json({ message: "RECORD NOT EXISTS" });
-    } else if (exUser.id !== recordId) {
-      return res.status(403).json({ message: "INVALID USER" });
+      res.status(403).json({ message: "RECORD NOT EXISTS" });
     }
-
     await connection.query(updateSql);
 
-    if (exUser.image_url) {
-      const Key = exUser.image_url.split(".com/")[1];
-      deleteObjectByKey(Key);
-    }
-
-    return res.status(204).end();
+    res.status(204).end();
   } catch (error) {
     return res.status(403).json({ message: error.message });
   } finally {
@@ -116,4 +113,19 @@ const putUserImage = async (req, res) => {
   }
 };
 
-export { detailUser, updateUser, putUserImage };
+// image
+const putUserImage = async (req, res) => {
+  if (!req.file) {
+    return res.status(403).json({ message: "OMISSION IN FILE" });
+  }
+  const { location: imageUrl } = req.file;
+
+  return res.status(200).json({ imageUrl });
+};
+
+export {
+  detailUser,
+  updateUserProfile,
+  updateInitialUserProfile,
+  putUserImage,
+};
