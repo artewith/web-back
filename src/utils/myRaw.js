@@ -305,8 +305,25 @@ const myRaw = {
             FROM musician_interviews I
             JOIN users U
                 ON I.user_id=U.id
-            ORDER BY created_at ASC
+            ORDER BY ?
             ?`,
+    recommendedMusicianInterviews: `SELECT I.*, U.name user_name, U.image_url user_image_url
+            FROM musician_interviews I
+            JOIN users U 
+                ON I.user_id=U.id
+            WHERE 1=1 ?
+            ORDER BY RAND()
+            ?`,
+    musicianInterview: `SELECT I.*, U.id user_id, U.name user_name, U.image_url user_image_url
+        FROM musician_interviews I
+        JOIN users U
+            ON I.user_id=U.id
+        WHERE ?`,
+    exMusicianInterview: `SELECT I.id, U.id user_id        
+        FROM musician_interviews I
+        JOIN users U
+            ON I.user_id=U.id
+        WHERE ?`,
     // musician profile
     musicianProfile: `SELECT id, role_id, name, school, description, image_url
             FROM users
@@ -353,6 +370,9 @@ const myRaw = {
     // musician_notes
     musicianNote: `INSERT INTO musician_notes(user_id, title, content_quill, thumbnail_image_url)
         VALUES (?,?,?,?)`,
+    // musician_interviews
+    musicianInterview: `INSERT INTO musician_interviews(user_id, title, sub_title, content_quill, thumbnail_image_url)
+        VALUES (?,?,?,?,?)`,
   },
   update: {
     // user
@@ -429,6 +449,13 @@ const myRaw = {
     musicianNoteViewCount: `UPDATE musician_notes N
         SET view_count=view_count+1
         WHERE ?`,
+    // update musician_interviews
+    musicianInterview: `UPDATE musician_interviews I
+            SET user_id=?, title=?, sub_title=?, content_quill=?, thumbnail_image_url=?
+            WHERE ?`,
+    musicianInterviewViewCount: `UPDATE musician_interviews I
+        SET view_count=view_count+1
+        WHERE ?`,
   },
   delete: {
     // offers
@@ -466,6 +493,9 @@ const myRaw = {
         WHERE 1=1 ?`,
     // musician_notes
     musicianNote: `DELETE FROM musician_notes N
+            WHERE ?`,
+    // musician_interviews
+    musicianInterview: `DELETE FROM musician_interviews I
             WHERE ?`,
   },
   where: {
@@ -572,6 +602,8 @@ const myRaw = {
     commentId: (id) => mysql.raw(`AND C.id=${id}`),
     noteId: (id) => mysql.raw(`N.id=${id}`),
     noteIdNot: (id) => mysql.raw(`AND N.id !=${id}`),
+    interviewId: (id) => mysql.raw(`I.id=${id}`),
+    interviewIdNot: (id) => mysql.raw(`AND I.id !=${id}`),
   },
   base: {
     limitOffset: (limit, offset) =>
@@ -585,7 +617,9 @@ const myRaw = {
           ? "created_at ASC"
           : order === "past"
           ? "created_at DESC"
-          : order === "popular" && "view_count DESC"
+          : order === "popular"
+          ? "view_count DESC"
+          : "created_at ASC"
       ),
     hourlyPrice: (order) =>
       mysql.raw(order === undefined ? "" : `hourly_price ${order} ,`),
