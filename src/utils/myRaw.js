@@ -256,6 +256,61 @@ const myRaw = {
               ORDER BY created_at DESC`,
     exCommunityComment: `SELECT id, user_id FROM community_comments AS C
         WHERE 1=1 ?`,
+
+    // musician_notes
+    musicianNote: `SELECT N.*, U.id user_id, U.name user_name, U.image_url user_image_url
+        FROM musician_notes N
+        JOIN users U
+            ON N.user_id=U.id
+        WHERE ?`,
+    exMusicianNote: `SELECT N.id, U.id user_id        
+        FROM musician_notes N
+        JOIN users U
+            ON N.user_id=U.id
+        WHERE ?`,
+    musicianNotes: `SELECT N.*, U.name user_name, U.image_url user_image_url
+            FROM musician_notes N
+            JOIN users U 
+                ON N.user_id=U.id
+            ORDER BY ?
+            ?`,
+    recentMusicianNotes: `SELECT N.*, U.name user_name, U.image_url user_image_url
+            FROM musician_notes N
+            JOIN users U 
+                ON N.user_id=U.id
+            ORDER BY created_at ASC
+            ?`,
+    popularMusicianNotes: `SELECT N.*, U.name user_name, U.image_url user_image_url
+            FROM musician_notes N
+            JOIN users U
+                ON N.user_id=U.id
+            ORDER BY view_count DESC
+            ?`,
+    // recommend musicians
+    recommendedMusicianNotes: `SELECT N.*, U.name user_name, U.image_url user_image_url
+            FROM musician_notes N
+            JOIN users U 
+                ON N.user_id=U.id
+            WHERE 1=1 ?
+            ORDER BY RAND()
+            ?`,
+    recommendedMusicians: `SELECT U.*            
+            FROM users U
+            WHERE U.role_id=2
+            ORDER BY RAND()
+            ?`,
+
+    // musician_interviews
+    musicianInterviews: `SELECT I.*, U.name user_name, U.image_url user_image_url 
+            FROM musician_interviews I
+            JOIN users U
+                ON I.user_id=U.id
+            ORDER BY created_at ASC
+            ?`,
+    // musician profile
+    musicianProfile: `SELECT id, role_id, name, school, description, image_url
+            FROM users
+            WHERE 1=1 ?`,
   },
   insert: {
     // user
@@ -294,6 +349,10 @@ const myRaw = {
         VALUES(?,?,?,?)`,
     communityComments: `INSERT INTO community_comments(user_id, community_post_id, content)
         VALUES (?,?,?)`,
+
+    // musician_notes
+    musicianNote: `INSERT INTO musician_notes(user_id, title, content_quill, thumbnail_image_url)
+        VALUES (?,?,?,?)`,
   },
   update: {
     // user
@@ -363,6 +422,13 @@ const myRaw = {
     communityComment: `UPDATE community_comments AS C
         SET content=?
         WHERE 1=1 ?`,
+    // update musician_notes
+    musicianNote: `UPDATE musician_notes N
+            SET user_id=?, title=?, content_quill=?, thumbnail_image_url=?
+            WHERE ?`,
+    musicianNoteViewCount: `UPDATE musician_notes N
+        SET view_count=view_count+1
+        WHERE ?`,
   },
   delete: {
     // offers
@@ -398,6 +464,9 @@ const myRaw = {
         WHERE 1=1 ?`,
     communityComment: `DELETE FROM community_comments AS C
         WHERE 1=1 ?`,
+    // musician_notes
+    musicianNote: `DELETE FROM musician_notes N
+            WHERE ?`,
   },
   where: {
     id: (id) => mysql.raw(id ? `AND id=${id}` : ""),
@@ -501,6 +570,8 @@ const myRaw = {
     postTitleLike: (term) =>
       mysql.raw(term ? `AND P.title LIKE "%${term}%"` : ""),
     commentId: (id) => mysql.raw(`AND C.id=${id}`),
+    noteId: (id) => mysql.raw(`N.id=${id}`),
+    noteIdNot: (id) => mysql.raw(`AND N.id !=${id}`),
   },
   base: {
     limitOffset: (limit, offset) =>
@@ -508,6 +579,14 @@ const myRaw = {
     justRaw: (param) => (param ? mysql.raw(param) : null),
   },
   orderBy: {
+    any: (order) =>
+      mysql.raw(
+        order === "recent" || undefined
+          ? "created_at ASC"
+          : order === "past"
+          ? "created_at DESC"
+          : order === "popular" && "view_count DESC"
+      ),
     hourlyPrice: (order) =>
       mysql.raw(order === undefined ? "" : `hourly_price ${order} ,`),
     createdAt: (order) => mysql.raw(order ? `, created_at ${order}` : ""),

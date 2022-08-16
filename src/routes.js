@@ -41,6 +41,13 @@ const routes = {
   POST_COMMENT: "/:postId/comments/:commentId",
   ADVERTISEMENTS: "/advertisements",
   RANDOM: "/random",
+  MUSICIAN_NOTES: "/musician-notes",
+  ALL: "/all",
+  NOTE_ID: "/:noteId",
+  MUSICIAN_ID: "/musicians/:musicianId",
+  MUSICIANS: "/musicians",
+  MUSICIAN_INTERVIEWS: "/musician-interviews",
+  INTERVIEW_ID: "/:interviewId",
 };
 
 export default routes;

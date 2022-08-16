@@ -4,9 +4,12 @@ import mysql from "mysql2/promise";
 
 import pool from "../db";
 import myRaw from "../utils/myRaw";
+import { ROLE_ID } from "../utils/user";
 
 // ?: 클라이언트쪽과 논의 필요
 const validate = async (req, res, next) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+
   try {
     const payload = jwt.verify(
       req.headers.authorization,
@@ -14,8 +17,8 @@ const validate = async (req, res, next) => {
     );
 
     const selectExUserSql = mysql.format(myRaw.select.exUser, [payload.userId]);
-    const connection = await pool.getConnection(async (conn) => conn);
 
+    // !: 최적화 필요. 현재 평균 실행시간 150 ms 이상
     switch (payload.provider) {
       case "kakao":
         await axios.get("https://kapi.kakao.com/v1/user/access_token_info", {
@@ -44,8 +47,8 @@ const validate = async (req, res, next) => {
       return res.status(401).json({ message: "RECORT NOT EXISTS" });
     }
 
+    payload.roleId = record.role_id;
     req.user = payload;
-    req.userRecord = record;
     next();
   } catch (error) {
     if (error instanceof JsonWebTokenError) {
@@ -56,7 +59,17 @@ const validate = async (req, res, next) => {
       res.status(401).json(error.response.data);
     }
   } finally {
+    connection.release();
   }
+};
+
+// check is admin
+const checkIsAdmin = async (req, res, next) => {
+  const { roleId } = req.user;
+
+  if (roleId !== ROLE_ID.admin) {
+    return res.status(401).json({ message: "BAD PERMISSION LEVEL" });
+  } else return next();
 };
 
 // get user info from vendors
@@ -117,4 +130,10 @@ const getGoogleUserInfo = async (req, res, next) => {
       return res.status(error.response.status).json(error.response.data);
   }
 };
-export { validate, getKakaoUserInfo, getNaverUserInfo, getGoogleUserInfo };
+export {
+  validate,
+  checkIsAdmin,
+  getKakaoUserInfo,
+  getNaverUserInfo,
+  getGoogleUserInfo,
+};
