@@ -13,6 +13,7 @@ import practiceHouseRouter from "./routers/practice-houses";
 import communityRouter from "./routers/community";
 import userRouter from "./routers/users";
 import advertisementRouter from "./routers/advertisements";
+import musicianNoteRouter from "./routers/musician-notes";
 
 dotenv.config();
 
@@ -34,5 +35,6 @@ app.use(routes.PRACTICE_HOUSES, practiceHouseRouter);
 app.use(routes.COMMUNITY, communityRouter);
 app.use(routes.USERS, userRouter);
 app.use(routes.ADVERTISEMENTS, advertisementRouter);
+app.use(routes.MUSICIAN_NOTES, musicianNoteRouter);
 
 export default app;
