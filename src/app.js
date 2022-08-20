@@ -4,6 +4,7 @@ import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
 import dotenv from "dotenv";
+import cors from "cors";
 
 import routes from "./routes";
 import filterRouter from "./routers/filters";
@@ -20,9 +21,11 @@ dotenv.config();
 
 const app = express();
 
+const whiteList = ["http://localhost:3000", "https://artewith-fe.vercel.app"];
+
 // third-party middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: whiteList, credentials: true }));
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

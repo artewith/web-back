@@ -5,8 +5,8 @@ import mysql from "mysql2/promise";
 import pool from "../db";
 import myRaw from "../utils/myRaw";
 import { ROLE_ID } from "../utils/user";
+import { codes, messages } from "../utils/responses";
 
-// ?: 클라이언트쪽과 논의 필요
 const validate = async (req, res, next) => {
   const connection = await pool.getConnection(async (conn) => conn);
 
@@ -56,8 +56,15 @@ const validate = async (req, res, next) => {
     }
 
     if (error.response.status === 400 || error.response.status === 401) {
-      res.status(401).json(error.response.data);
+      res.status(401).json({
+        message: messages.REJECTED_BY_VENDOR,
+        ...error.response.data,
+      });
     }
+
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   } finally {
     connection.release();
   }
@@ -89,7 +96,14 @@ const getKakaoUserInfo = async (req, res, next) => {
     return next();
   } catch (error) {
     if (error.response)
-      return res.status(error.response.status).json(error.response.data);
+      return res.status(codes.UNAUTHORIZED).json({
+        message: messages.REJECTED_BY_VENDOR,
+        error: error.response.data,
+      });
+
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   }
 };
 
@@ -108,7 +122,13 @@ const getNaverUserInfo = async (req, res, next) => {
     return next();
   } catch (error) {
     if (error.response)
-      return res.status(error.response.status).json(error.response.data);
+      return res.status(codes.UNAUTHORIZED).json({
+        message: messages.REJECTED_BY_VENDOR,
+        error: error.response.data,
+      });
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   }
 };
 
@@ -127,7 +147,13 @@ const getGoogleUserInfo = async (req, res, next) => {
     return next();
   } catch (error) {
     if (error.response)
-      return res.status(error.response.status).json(error.response.data);
+      return res.status(codes.UNAUTHORIZED).json({
+        message: messages.REJECTED_BY_VENDOR,
+        ...error.response.data,
+      });
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ ...responses.uncaughtError, error });
   }
 };
 export {

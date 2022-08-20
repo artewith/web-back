@@ -4,6 +4,7 @@ import mysql from "mysql2/promise";
 
 import pool from "../db";
 import myRaw from "../utils/myRaw";
+import { codes, messages } from "../utils/responses";
 import { GENDER_ID, ROLE_ID, SNS_AUTH_API_ID } from "../utils/user";
 
 // kakao login
@@ -62,7 +63,9 @@ const kakaoLogin = async (req, res) => {
 
     return res.status(statusCode).json({ arte_token });
   } catch (error) {
-    return res.status(403).json({ message: error.message });
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   } finally {
     connection.release();
   }
@@ -118,7 +121,9 @@ const naverLogin = async (req, res) => {
 
     return res.status(statusCode).json({ arte_token });
   } catch (error) {
-    return res.status(403).json({ message: error.message });
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   } finally {
     connection.release();
   }
@@ -170,7 +175,9 @@ const googleLogin = async (req, res) => {
 
     return res.status(statusCode).json({ arte_token });
   } catch (error) {
-    return res.status(403).json({ message: error.message });
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   } finally {
     connection.release();
   }
@@ -207,15 +214,21 @@ const validateAndReturnUser = async (req, res) => {
         break;
 
       default:
-        return res.status(401).json({ message: "no provider" });
+        return res
+          .status(codes.BAD_REQUEST)
+          .json({ message: messages.INVALID_VENDOR });
     }
 
     const [[record]] = await connection.query(selectExUserSql);
     if (!record) {
-      return res.status(401).json({ message: "RECORT NOT EXISTS" });
+      return res
+        .status(codes.NOT_FOUND)
+        .json({ message: messages.RESOURCE_NOT_FOUND });
     }
 
-    return res.status(200).json({ record });
+    return res
+      .status(codes.OK)
+      .json({ message: messages.OK_WITH_SINGLE_RECORD, record });
   } catch (error) {
     if (error instanceof JsonWebTokenError) {
       return res
@@ -228,6 +241,9 @@ const validateAndReturnUser = async (req, res) => {
     if (error.response?.status === 400 || error.response?.status === 401) {
       return res.status(401).json(error.response.data);
     }
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   } finally {
     connection.release();
   }
