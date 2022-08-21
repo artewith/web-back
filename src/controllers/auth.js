@@ -183,70 +183,11 @@ const googleLogin = async (req, res) => {
   }
 };
 
-// validate
-const validateAndReturnUser = async (req, res) => {
-  const connection = await pool.getConnection(async (conn) => conn);
-
-  try {
-    const { userId, provider, access_token } = await jwt.verify(
-      req.headers.authorization,
-      process.env.JWT_SECRET
-    );
-    const selectExUserSql = mysql.format(myRaw.select.exUser, [userId]);
-
-    switch (provider) {
-      case "kakao":
-        await axios.get("https://kapi.kakao.com/v1/user/access_token_info", {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
-        break;
-
-      case "google":
-        await axios.get("https://www.googleapis.com/oauth2/v1/tokeninfo", {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
-        break;
-
-      case "naver":
-        await axios.get("https://openapi.naver.com/v1/nid/me", {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
-        break;
-
-      default:
-        return res
-          .status(codes.BAD_REQUEST)
-          .json({ message: messages.INVALID_VENDOR });
-    }
-
-    const [[record]] = await connection.query(selectExUserSql);
-    if (!record) {
-      return res
-        .status(codes.NOT_FOUND)
-        .json({ message: messages.RESOURCE_NOT_FOUND });
-    }
-
-    return res
-      .status(codes.OK)
-      .json({ message: messages.OK_WITH_SINGLE_RECORD, record });
-  } catch (error) {
-    if (error instanceof JsonWebTokenError) {
-      return res
-        .status(401)
-        .json({ message: "invalid token", name: error.name });
-    }
-    if (error instanceof AxiosError) {
-      return res.status(401).json({ message: error.message, name: error.name });
-    }
-    if (error.response?.status === 400 || error.response?.status === 401) {
-      return res.status(401).json(error.response.data);
-    }
-    return res
-      .status(codes.INTERNAL_SERVER_ERROR)
-      .json({ message: messages.UNCAUGHT_ERROR, error });
-  } finally {
-    connection.release();
-  }
+// after validate
+const readUser = async (req, res) => {
+  return res
+    .status(codes.OK)
+    .json({ message: messages.OK, user: req.user.record });
 };
 
-export { kakaoLogin, naverLogin, googleLogin, validateAndReturnUser };
+export { kakaoLogin, naverLogin, googleLogin, readUser };
