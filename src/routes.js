@@ -1,4 +1,5 @@
 const routes = {
+  API_VERSION_1: "/api/v1",
   ROOT: "/",
   FILTERS: "/filters",
   AUTH: "/auth",

@@ -5,8 +5,8 @@ import cors from "cors";
 import compression from "compression";
 import dotenv from "dotenv";
 
+import corsOptions from "./utils/corsOptions";
 import routes from "./routes";
-import filterRouter from "./routers/filters";
 import authRouter from "./routers/auth";
 import offerRouter from "./routers/offers";
 import practiceHouseRouter from "./routers/practice-houses";
@@ -19,24 +19,25 @@ import musicianInterviewRouter from "./routers/musician-interviews";
 dotenv.config();
 
 const app = express();
+const v1 = express.Router();
 
 // third-party middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 // routers
-app.use(routes.FILTERS, filterRouter);
-app.use(routes.AUTH, authRouter);
-app.use(routes.OFFERS, offerRouter);
-app.use(routes.PRACTICE_HOUSES, practiceHouseRouter);
-app.use(routes.COMMUNITY, communityRouter);
-app.use(routes.USERS, userRouter);
-app.use(routes.ADVERTISEMENTS, advertisementRouter);
-app.use(routes.MUSICIAN_NOTES, musicianNoteRouter);
-app.use(routes.MUSICIAN_INTERVIEWS, musicianInterviewRouter);
+app.use(routes.API_VERSION_1, v1);
+v1.use(routes.AUTH, authRouter);
+v1.use(routes.OFFERS, offerRouter);
+v1.use(routes.PRACTICE_HOUSES, practiceHouseRouter);
+v1.use(routes.COMMUNITY, communityRouter);
+v1.use(routes.USERS, userRouter);
+v1.use(routes.ADVERTISEMENTS, advertisementRouter);
+v1.use(routes.MUSICIAN_NOTES, musicianNoteRouter);
+v1.use(routes.MUSICIAN_INTERVIEWS, musicianInterviewRouter);
 
 export default app;

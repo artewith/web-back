@@ -1,20 +1,18 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import jwt, { JsonWebTokenError } from "jsonwebtoken";
 import mysql from "mysql2/promise";
 
 import pool from "../db";
 import myRaw from "../utils/myRaw";
 import { ROLE_ID } from "../utils/user";
+import { codes, messages } from "../utils/responses";
 
-// ?: 클라이언트쪽과 논의 필요
 const validate = async (req, res, next) => {
   const connection = await pool.getConnection(async (conn) => conn);
 
   try {
-    const payload = jwt.verify(
-      req.headers.authorization,
-      process.env.JWT_SECRET
-    );
+    const token = req.headers.authorization?.split("Bearer ")[1];
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
 
     const selectExUserSql = mysql.format(myRaw.select.exUser, [payload.userId]);
 
@@ -39,25 +37,43 @@ const validate = async (req, res, next) => {
         break;
 
       default:
-        return res.status(401).json({ message: "no provider" });
+        return res
+          .status(codes.BAD_REQUEST)
+          .json({ message: messages.INVALID_VENDOR });
     }
 
     const [[record]] = await connection.query(selectExUserSql);
     if (!record) {
-      return res.status(401).json({ message: "RECORT NOT EXISTS" });
+      return res
+        .status(codes.NOT_FOUND)
+        .json({ message: messages.RESOURCE_NOT_FOUND });
     }
 
-    payload.roleId = record.role_id;
-    req.user = payload;
+    req.user = { ...payload, record };
     next();
   } catch (error) {
+    // case of arte_token error
     if (error instanceof JsonWebTokenError) {
-      return res.status(401).json({ msg: "invalid token", name: error.name });
+      return res
+        .status(401)
+        .json({ message: messages.INVALID_ARTE_TOKEN, error });
+    }
+    // case of vender response
+    // !: 벤더마다 응답이 다를 경우, 메세지와 네임을 통일해야 함.
+    if (error.response) {
+      return res.status(401).json({
+        message: messages.REJECTED_BY_SNS_VENDOR,
+        error: {
+          name: error.response.data.error_description,
+          message: error.response.data.error,
+        },
+      });
     }
 
-    if (error.response.status === 400 || error.response.status === 401) {
-      res.status(401).json(error.response.data);
-    }
+    console.trace(error);
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   } finally {
     connection.release();
   }
@@ -65,10 +81,12 @@ const validate = async (req, res, next) => {
 
 // check is admin
 const checkIsAdmin = async (req, res, next) => {
-  const { roleId } = req.user;
+  const { role_id } = req.user.record;
 
-  if (roleId !== ROLE_ID.admin) {
-    return res.status(401).json({ message: "BAD PERMISSION LEVEL" });
+  if (role_id !== ROLE_ID.admin) {
+    return res
+      .status(codes.FORBIDDEN)
+      .json({ message: messages.BAD_PERMISSION_LEVEL });
   } else return next();
 };
 
@@ -89,7 +107,14 @@ const getKakaoUserInfo = async (req, res, next) => {
     return next();
   } catch (error) {
     if (error.response)
-      return res.status(error.response.status).json(error.response.data);
+      return res.status(codes.UNAUTHORIZED).json({
+        message: messages.REJECTED_BY_SNS_VENDOR,
+        error: error.response.data,
+      });
+
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   }
 };
 
@@ -108,7 +133,13 @@ const getNaverUserInfo = async (req, res, next) => {
     return next();
   } catch (error) {
     if (error.response)
-      return res.status(error.response.status).json(error.response.data);
+      return res.status(codes.UNAUTHORIZED).json({
+        message: messages.REJECTED_BY_SNS_VENDOR,
+        error: error.response.data,
+      });
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ message: messages.UNCAUGHT_ERROR, error });
   }
 };
 
@@ -127,7 +158,13 @@ const getGoogleUserInfo = async (req, res, next) => {
     return next();
   } catch (error) {
     if (error.response)
-      return res.status(error.response.status).json(error.response.data);
+      return res.status(codes.UNAUTHORIZED).json({
+        message: messages.REJECTED_BY_SNS_VENDOR,
+        ...error.response.data,
+      });
+    return res
+      .status(codes.INTERNAL_SERVER_ERROR)
+      .json({ ...responses.uncaughtError, error });
   }
 };
 export {
